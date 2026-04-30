@@ -1,0 +1,22 @@
+[build]
+  command = "npm run build --workspace=reform-ai-vis-sandbox"
+  publish = "reform-ai-vis-sandbox/dist"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+[[redirects]]
+  from = "/generate-visualization"
+  to = "/.netlify/functions/api"
+  status = 200
+
+[[redirects]]
+  from = "/health"
+  to = "/.netlify/functions/api"
+  status = 200
+
+# Optional: If you want to proxy to an external backend instead of using functions
+# [[redirects]]
+#   from = "/generate-visualization"
+#   to = "https://your-backend-url.com/generate-visualization"
+#   status = 200

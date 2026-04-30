@@ -1,0 +1,4 @@
+variant_name: baseline
+description: The current production generation logic without any recent fixes.
+prompt_constraints: []
+notes: Used as the control group for the A/B test.

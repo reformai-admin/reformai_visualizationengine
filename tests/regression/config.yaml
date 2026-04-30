@@ -1,0 +1,67 @@
+version: "2.0"
+created: "2026-04-27"
+
+api_base: "http://localhost:8080"
+anthropic_api_key: "YOUR_API_KEY_HERE" # Moved to .env
+
+
+pipelines:
+  - mode: baseline_original
+    label: "Baseline"
+    slug: baseline
+  - mode: balanced_v5
+    label: "Balanced V5.1"
+    slug: v5_1
+
+rooms:
+  - id: bathroom
+    label: "Bathroom"
+    room_type: bathroom
+    fixture: bathroom.png
+  - id: kitchen2
+    label: "Kitchen 2"
+    room_type: kitchen
+    fixture: kitchen2.jpg
+  - id: livingroom
+    label: "Living Room"
+    room_type: living_room
+    fixture: livingroom.jpg
+  - id: bedroom2
+    label: "Bedroom 2"
+    room_type: bedroom
+    fixture: bedroom2.png
+
+styles:
+  - id: japandi
+    name: "Japandi"
+    bucket: LOW
+  - id: coastal
+    name: "Coastal"
+    bucket: MEDIUM
+  - id: vintage
+    name: "Vintage"
+    bucket: HIGH
+
+style_influence: 50
+
+scoring_weights:
+  structural_fidelity: 0.20
+  window_exterior_preservation: 0.15
+  style_fidelity: 0.15
+  material_hierarchy: 0.15
+  staging_density: 0.10
+  functional_realism: 0.10
+  design_fidelity: 0.10
+  defects_artifacts: 0.05
+
+hard_rejection_rules:
+  - "New wall, door, or window added"
+  - "Window removed, replaced by wall/object, or window count changed"
+  - "Window geometry significantly altered (moved, resized, or blocked by opaque surface)"
+  - "Exterior view removed or replaced by an interior object"
+  - "Major camera or perspective shift"
+  - "Impossible geometry"
+  - "Severe rendering artifact"
+  - "Floating or unsupported objects"
+  - "Visible cables, cords, or clutter that should be removed"
+  - "Corrupted or incomplete image"

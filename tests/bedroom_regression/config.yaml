@@ -1,0 +1,59 @@
+version: "2.0"
+created: "2026-04-28"
+
+api_base: "http://localhost:8080"
+anthropic_api_key: "YOUR_API_KEY_HERE" # Moved to .env
+
+pipelines:
+  - mode: baseline_original
+    label: "Baseline"
+    slug: baseline
+  - mode: balanced_v4_1
+    label: "Balanced V4.1"
+    slug: v4_1
+
+rooms:
+  - id: bedroom
+    label: "Bedroom"
+    room_type: bedroom
+    fixture: bedroom2.png
+
+styles:
+  - { id: modern, name: "Modern", bucket: LOW }
+  - { id: contemporary, name: "Contemporary", bucket: MEDIUM }
+  - { id: industrial, name: "Industrial", bucket: LOW }
+  - { id: midcentury_modern, name: "Midcentury Modern", bucket: MEDIUM }
+  - { id: farmhouse, name: "Farmhouse", bucket: MEDIUM }
+  - { id: coastal, name: "Coastal", bucket: MEDIUM }
+  - { id: japandi, name: "Japandi", bucket: LOW }
+  - { id: rustic, name: "Rustic", bucket: HIGH }
+  - { id: bohemian, name: "Bohemian", bucket: HIGH }
+  - { id: biophilic, name: "Biophilic", bucket: LOW }
+  - { id: french_country, name: "French Country", bucket: HIGH }
+  - { id: japanese, name: "Japanese", bucket: MEDIUM }
+  - { id: neoclassic, name: "Neoclassic", bucket: HIGH }
+  - { id: vintage, name: "Vintage", bucket: HIGH }
+
+style_influence: 50
+
+scoring_weights:
+  structural_fidelity: 0.20
+  window_exterior_preservation: 0.15
+  style_fidelity: 0.15
+  material_hierarchy: 0.15
+  staging_density: 0.10
+  functional_realism: 0.10
+  design_fidelity: 0.10
+  defects_artifacts: 0.05
+
+hard_rejection_rules:
+  - "New wall, door, or window added"
+  - "Window removed, replaced by wall/object, or window count changed"
+  - "Window geometry significantly altered (moved, resized, or blocked by opaque surface)"
+  - "Exterior view removed or replaced by an interior object"
+  - "Major camera or perspective shift"
+  - "Impossible geometry"
+  - "Severe rendering artifact"
+  - "Floating or unsupported objects"
+  - "Visible cables, cords, or clutter that should be removed"
+  - "Corrupted or incomplete image"

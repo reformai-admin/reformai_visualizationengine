@@ -1,0 +1,16 @@
+{
+  "name": "visualization-engine-root",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "reform-ai-vis-sandbox",
+    "reform-ai-vis-sandbox/reform-ai-image-visualization-service"
+  ],
+  "scripts": {
+    "build": "npm run build --workspace=reform-ai-vis-sandbox",
+    "dev": "concurrently \"npm run dev --workspace=back-reformai\" \"npm run dev --workspace=reform-ai-vis-sandbox\""
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

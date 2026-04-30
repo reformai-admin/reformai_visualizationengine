@@ -1,0 +1,6 @@
+variant_name: combined
+description: Integration of both window and geometry fixes.
+prompt_constraints:
+  - "All fixes from window_fix"
+  - "All fixes from geometry_fix"
+notes: Represents the target production state if both fixes pass.

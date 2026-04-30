@@ -1,0 +1,40 @@
+# Environment & Secrets
+.env
+.env.*
+!.env.example
+config.local.yaml
+
+# Logs & Debug
+*.log
+debug/
+outputs/
+runs/
+temp/
+
+# Dependencies
+node_modules/
+**/node_modules/
+.gemini/
+.claude/
+.antigravity/
+
+# Build & OS
+dist/
+**/dist/
+build/
+**/build/
+.DS_Store
+Thumbs.db
+*.exe
+*.dll
+
+# Python artifacts
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.venv/
+venv/
+
+# Large Files
+docs/reference-documents/AI Visualization Tool Smoke Test (1).pdf

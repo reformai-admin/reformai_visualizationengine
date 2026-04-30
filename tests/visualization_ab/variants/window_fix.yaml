@@ -1,0 +1,6 @@
+variant_name: window_fix
+description: Logic optimized to prevent window distortion and maintain glass transparency.
+prompt_constraints:
+  - "Preserve window mullions"
+  - "Maintain exterior view visibility"
+notes: Focuses on architectural integrity of openings.

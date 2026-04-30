@@ -1,0 +1,110 @@
+version: "1.0"
+created: "2026-04-29"
+description: "Moodboard validation suite for V5.1 — validates bounded modifier behavior"
+
+api_base: "http://localhost:8080"
+
+# ── pipeline ───────────────────────────────────────────────────────────────────
+# Single pipeline: no comparison. This is a behavioral validation, not a race.
+pipeline:
+  mode: balanced_v5
+  label: "Balanced V5.1"
+  slug: v5_1
+
+# ── room ──────────────────────────────────────────────────────────────────────
+room:
+  id: living_room
+  label: "Living Room"
+  room_type: living_room
+  fixture: living_room.jpg         # relative to fixtures/rooms/
+
+# ── moodboards ────────────────────────────────────────────────────────────────
+# Each moodboard is tested against a specific style subset.
+# Intentional overlap across moodboards enables consistency analysis.
+moodboards:
+  - id: moodboard_a
+    label: "Moodboard A (Soft Neutral / Japandi-adjacent)"
+    fixture: moodboard_a.png       # relative to fixtures/moodboards/
+    relationship: aligned          # aligned with Japandi/Coastal; conflicts with Industrial/Neoclassic
+    styles:
+      - japandi
+      - coastal
+      - industrial
+      - neoclassic
+
+  - id: moodboard_b
+    label: "Moodboard B (Architectural Warm Modern)"
+    fixture: moodboard_b.png
+    relationship: mixed            # aligned with Modern/Contemporary; partial with MCM; contrasts with Bohemian
+    styles:
+      - modern
+      - contemporary
+      - midcentury_modern
+      - bohemian
+
+  - id: moodboard_c
+    label: "Moodboard C (Mixed / Noisy / Stress Test)"
+    fixture: moodboard_c.png
+    relationship: stress           # deliberately mixed signals; tests filter + conflict resolution
+    styles:
+      - japandi
+      - modern
+      - industrial
+      - bohemian
+
+# ── styles ────────────────────────────────────────────────────────────────────
+styles:
+  - id: japandi
+    name: "Japandi"
+    density_bucket: LOW
+
+  - id: modern
+    name: "Modern"
+    density_bucket: LOW
+
+  - id: coastal
+    name: "Coastal"
+    density_bucket: MEDIUM
+
+  - id: contemporary
+    name: "Contemporary"
+    density_bucket: MEDIUM
+
+  - id: midcentury_modern
+    name: "Midcentury Modern"
+    density_bucket: MEDIUM
+
+  - id: industrial
+    name: "Industrial"
+    density_bucket: MEDIUM
+
+  - id: bohemian
+    name: "Bohemian"
+    density_bucket: HIGH
+
+  - id: neoclassic
+    name: "Neoclassic"
+    density_bucket: HIGH
+
+style_influence: 50
+
+# ── consistency pairs ─────────────────────────────────────────────────────────
+# Styles appearing in multiple moodboards — used for cross-moodboard consistency analysis.
+consistency_pairs:
+  - style: japandi
+    moodboards: [moodboard_a, moodboard_c]
+  - style: modern
+    moodboards: [moodboard_b, moodboard_c]
+  - style: industrial
+    moodboards: [moodboard_a, moodboard_c]
+  - style: bohemian
+    moodboards: [moodboard_b, moodboard_c]
+
+# ── scoring weights ───────────────────────────────────────────────────────────
+scoring_weights:
+  style_dominance: 0.25
+  moodboard_presence: 0.20
+  scope_compliance: 0.20
+  conflict_resolution: 0.15
+  composition_strength: 0.10
+  density_accuracy: 0.10
