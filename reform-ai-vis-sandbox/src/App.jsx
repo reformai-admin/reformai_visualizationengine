@@ -179,6 +179,10 @@ function RequestSummary({ req }) {
           ['Furniture', req.furnitureImage ? <Tag color="blue">{req.furnitureImage}</Tag> : '—'],
           ['Prev result', req.previousResultImage ? <Tag color="blue">{req.previousResultImage}</Tag> : '—'],
           ['Sent at', req.sentAt],
+          ...(req.contractorId ? [
+            ['Contractor ID', <Tag color="blue">{req.contractorId}</Tag>],
+            ['Renovation IDs', <pre style={{ fontFamily: 'var(--mono)', fontSize: 10, color: '#60a5fa', margin: 0 }}>{JSON.stringify(req.renovationSelectionIds, null, 2)}</pre>],
+          ] : []),
         ].map(([k, v]) => (
           <>
             <span style={{ color: '#484f58', fontWeight: 600 }}>{k}</span>
@@ -214,6 +218,228 @@ function MetaPanel({ meta, rawError }) {
   );
 }
 
+// ─── V6.0: Catalogue sub-components ──────────────────────────────────────────
+
+const CATEGORY_ORDER = ['flooring', 'walls', 'countertops', 'cabinets'];
+const CATEGORY_LABELS = { flooring: 'Flooring', walls: 'Walls', countertops: 'Countertops', cabinets: 'Cabinets' };
+
+function ItemCard({ item, selected, onToggle }) {
+  const attrs = Object.entries(item.attributes || {})
+    .filter(([, v]) => v)
+    .map(([k, v]) => `${k}: ${v}`);
+
+  return (
+    <div
+      onClick={onToggle}
+      style={{
+        border: `1px solid ${selected ? '#1a6fe8' : '#21262d'}`,
+        background: selected ? '#0d1f3c' : '#0d1117',
+        borderRadius: 6, padding: '8px 10px', marginBottom: 6,
+        cursor: 'pointer', transition: 'all 0.12s', position: 'relative',
+      }}
+    >
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 3 }}>
+        <span style={{ fontWeight: 600, color: selected ? '#60a5fa' : '#e6edf3', fontSize: 12 }}>
+          {item.name}
+        </span>
+        {selected && <span style={{ color: '#1a6fe8', fontSize: 12, fontWeight: 700, lineHeight: 1 }}>✓</span>}
+      </div>
+      <div style={{ color: '#8b949e', fontSize: 10, fontStyle: 'italic', marginBottom: 5, lineHeight: 1.4 }}>
+        "{item.promptDescription}"
+      </div>
+      <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+        {attrs.map(a => (
+          <span key={a} style={{ fontSize: 9, padding: '1px 5px', background: '#161b22', border: '1px solid #21262d', borderRadius: 3, color: '#484f58' }}>
+            {a}
+          </span>
+        ))}
+        <span style={{ fontSize: 9, padding: '1px 5px', background: '#161b22', border: '1px solid #21262d', borderRadius: 3, color: '#30363d' }}>
+          {item.id}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function CataloguePanel({
+  contractorId, setContractorId,
+  catalogueItems, catalogueLoading, catalogueError,
+  onLoad,
+  renovationSelections, onSelect, onClear,
+}) {
+  const inputStyle = {
+    flex: 1, padding: '6px 9px', background: '#0d1117',
+    border: '1px solid #30363d', borderRadius: 5, color: '#e6edf3',
+    fontSize: 12, outline: 'none', fontFamily: 'inherit',
+  };
+  const focus = { onFocus: e => e.target.style.borderColor = '#1a6fe8', onBlur: e => e.target.style.borderColor = '#30363d' };
+
+  const grouped = CATEGORY_ORDER.reduce((acc, cat) => {
+    acc[cat] = catalogueItems.filter(i => i.category === cat);
+    return acc;
+  }, {});
+
+  const activeSelections = Object.fromEntries(
+    CATEGORY_ORDER.filter(cat => renovationSelections[cat])
+      .map(cat => [cat, renovationSelections[cat]])
+  );
+  const hasSelections = Object.keys(activeSelections).length > 0;
+
+  return (
+    <div>
+      {/* Contractor ID row */}
+      <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
+        <input
+          value={contractorId}
+          onChange={e => setContractorId(e.target.value)}
+          placeholder="contractor_demo"
+          style={inputStyle}
+          {...focus}
+        />
+        <button
+          type="button"
+          onClick={onLoad}
+          disabled={catalogueLoading || !contractorId.trim()}
+          style={{
+            padding: '6px 12px', fontSize: 11, fontWeight: 600,
+            background: catalogueLoading ? '#161b22' : '#21262d',
+            border: '1px solid #30363d', borderRadius: 5,
+            color: catalogueLoading ? '#484f58' : '#8b949e',
+            cursor: catalogueLoading ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap',
+          }}
+        >
+          {catalogueLoading ? '⏳ Loading…' : '↓ Load'}
+        </button>
+      </div>
+
+      {catalogueError && (
+        <div style={{ fontSize: 11, color: '#f87171', background: '#2d1515', border: '1px solid #da3633', borderRadius: 5, padding: '5px 9px', marginBottom: 8 }}>
+          {catalogueError}
+        </div>
+      )}
+
+      {/* Category groups */}
+      {CATEGORY_ORDER.map(cat => {
+        const items = grouped[cat] || [];
+        if (items.length === 0) return null;
+        const selected = renovationSelections[cat];
+        return (
+          <div key={cat} style={{ marginBottom: 10 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
+              <span style={{ fontSize: 10, fontWeight: 700, color: '#8b949e', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                {CATEGORY_LABELS[cat]}
+              </span>
+              {selected && (
+                <button
+                  type="button"
+                  onClick={() => onClear(cat)}
+                  style={{ fontSize: 10, color: '#da3633', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                >
+                  × clear
+                </button>
+              )}
+            </div>
+            <div style={{ maxHeight: 220, overflowY: 'auto' }}>
+              {items.map(item => (
+                <ItemCard
+                  key={item.id}
+                  item={item}
+                  selected={selected === item.id}
+                  onToggle={() => onSelect(cat, item.id)}
+                />
+              ))}
+            </div>
+          </div>
+        );
+      })}
+
+      {/* Request preview */}
+      {hasSelections && (
+        <div style={{ marginTop: 8, background: '#0d1117', border: '1px solid #21262d', borderRadius: 6, padding: 10 }}>
+          <div style={{ fontSize: 10, fontWeight: 700, color: '#484f58', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>
+            Request Preview
+          </div>
+          <pre style={{ fontFamily: 'var(--mono)', fontSize: 10, color: '#4ade80', margin: 0, whiteSpace: 'pre-wrap' }}>
+            {JSON.stringify({
+              headers: { 'X-Contractor-Id': contractorId },
+              renovationSelectionIds: activeSelections,
+            }, null, 2)}
+          </pre>
+        </div>
+      )}
+
+      {catalogueItems.length > 0 && !hasSelections && (
+        <div style={{ fontSize: 10, color: '#484f58', textAlign: 'center', padding: '6px 0' }}>
+          Click an item to select it
+        </div>
+      )}
+    </div>
+  );
+}
+
+function RenovationDebugPanel({ debug }) {
+  if (!debug) return null;
+  const {
+    contractorId,
+    renovationAnchorsInserted,
+    renovationAnchorCount,
+    renovationSelectionIds,
+    resolvedRenovationSelections,
+    renovationAnchorsBlock,
+  } = debug;
+
+  // Only render if V6.0 fields are present
+  if (!contractorId && !renovationAnchorsInserted && !renovationAnchorsBlock) return null;
+
+  return (
+    <div style={{ background: '#0d1117', border: `1px solid ${renovationAnchorsInserted ? '#1a6fe8' : '#21262d'}`, borderRadius: 6, padding: 12, marginBottom: 12 }}>
+      <div style={{ fontSize: 11, fontWeight: 700, color: renovationAnchorsInserted ? '#60a5fa' : '#8b949e', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+        Tier 2B — Renovation Debug {renovationAnchorsInserted ? <Tag color="blue">ACTIVE · {renovationAnchorCount} anchor{renovationAnchorCount !== 1 ? 's' : ''}</Tag> : <Tag>INACTIVE</Tag>}
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '160px 1fr', gap: '4px 8px', fontSize: 11, marginBottom: 10 }}>
+        {[
+          ['contractorId', contractorId ?? '—'],
+          ['anchorsInserted', renovationAnchorsInserted ? <Tag color="green">true</Tag> : <Tag>false</Tag>],
+          ['anchorCount', renovationAnchorCount ?? 0],
+        ].map(([k, v]) => (
+          <>
+            <span style={{ color: '#484f58', fontWeight: 600 }}>{k}</span>
+            <span style={{ color: '#e6edf3' }}>{v}</span>
+          </>
+        ))}
+      </div>
+
+      {renovationSelectionIds && (
+        <div style={{ marginBottom: 8 }}>
+          <div style={{ fontSize: 10, fontWeight: 700, color: '#484f58', textTransform: 'uppercase', marginBottom: 4 }}>Selection IDs sent</div>
+          <pre style={{ fontFamily: 'var(--mono)', fontSize: 10, color: '#8b949e', margin: 0 }}>
+            {JSON.stringify(renovationSelectionIds, null, 2)}
+          </pre>
+        </div>
+      )}
+
+      {resolvedRenovationSelections && (
+        <div style={{ marginBottom: 8 }}>
+          <div style={{ fontSize: 10, fontWeight: 700, color: '#484f58', textTransform: 'uppercase', marginBottom: 4 }}>Resolved prompt descriptions</div>
+          <pre style={{ fontFamily: 'var(--mono)', fontSize: 10, color: '#4ade80', margin: 0 }}>
+            {JSON.stringify(resolvedRenovationSelections, null, 2)}
+          </pre>
+        </div>
+      )}
+
+      {renovationAnchorsBlock && (
+        <div>
+          <div style={{ fontSize: 10, fontWeight: 700, color: '#484f58', textTransform: 'uppercase', marginBottom: 4 }}>Anchor block (sent to model)</div>
+          <pre style={{ fontFamily: 'var(--mono)', fontSize: 10, color: '#60a5fa', margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word', background: '#161b22', border: '1px solid #21262d', borderRadius: 4, padding: '8px 10px', maxHeight: 300, overflowY: 'auto' }}>
+            {renovationAnchorsBlock}
+          </pre>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── main app ─────────────────────────────────────────────────────────────────
 export default function App() {
   // form state
@@ -238,6 +464,15 @@ export default function App() {
   const [lastReq, setLastReq]     = useState(null);
   const [backendOk, setBackendOk] = useState(null);
 
+  // V6.0: catalogue state
+  const [contractorId, setContractorId]           = useState('contractor_demo');
+  const [catalogueItems, setCatalogueItems]       = useState([]);
+  const [catalogueLoading, setCatalogueLoading]   = useState(false);
+  const [catalogueError, setCatalogueError]       = useState(null);
+  const [renovationSelections, setRenovationSelections] = useState(
+    { flooring: null, walls: null, countertops: null, cabinets: null }
+  );
+
   // comparison state
   const [compareMode, setCompareMode] = useState(false);
   const [comparisonTarget, setComparisonTarget] = useState('balanced_v5');
@@ -256,6 +491,7 @@ export default function App() {
     'balanced_v4_0':    'Balanced V4.0',
     'balanced_v4_1':    'Balanced V4.1',
     'balanced_v5':      'Balanced V5.1 (Lean — Moodboard)',
+    'balanced_v6':      'Balanced V6.0 (Service Provider Catalogue)',
   };
 
   const handleMoodChange = (files) => {
@@ -267,6 +503,38 @@ export default function App() {
     }));
     Promise.all(readers).then(setMoodPreviews);
   };
+
+  // V6.0: catalogue loading
+  const loadCatalogue = useCallback(async () => {
+    if (!contractorId.trim()) return;
+    setCatalogueLoading(true);
+    setCatalogueError(null);
+    setCatalogueItems([]);
+    setRenovationSelections({ flooring: null, walls: null, countertops: null, cabinets: null });
+    try {
+      const res = await fetch('/api/catalogue', {
+        headers: { 'X-Contractor-Id': contractorId.trim() },
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
+      setCatalogueItems(json.items || []);
+    } catch (err) {
+      setCatalogueError(err.message);
+    } finally {
+      setCatalogueLoading(false);
+    }
+  }, [contractorId]);
+
+  const handleCatalogueSelect = useCallback((category, itemId) => {
+    setRenovationSelections(prev => ({
+      ...prev,
+      [category]: prev[category] === itemId ? null : itemId,
+    }));
+  }, []);
+
+  const handleCatalogueClear = useCallback((category) => {
+    setRenovationSelections(prev => ({ ...prev, [category]: null }));
+  }, []);
 
   const pingBackend = useCallback(async () => {
     setStatus('pinging');
@@ -280,10 +548,11 @@ export default function App() {
     }
   }, []);
 
-  const callPipeline = async (fd, mode) => {
+  const callPipeline = async (fd, mode, extraHeaders = {}) => {
     const t0 = Date.now();
-    const url = `${ENDPOINT}?mode=${mode}`;
-    const res = await fetch(url, { method: 'POST', body: fd });
+    const effectiveMode = mode === 'balanced_v6' ? 'balanced_v5' : mode;
+    const url = `${ENDPOINT}?mode=${effectiveMode}`;
+    const res = await fetch(url, { method: 'POST', body: fd, headers: extraHeaders });
     const elapsed = ((Date.now() - t0) / 1000).toFixed(2) + 's';
     const json = await res.json();
     if (!res.ok) throw { ...json, httpStatus: res.status, elapsed };
@@ -293,6 +562,19 @@ export default function App() {
   const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
     if (!roomImg.file) return;
+
+    // V6.0: build active renovation selection IDs — only active when V6 pipeline is selected
+    const isV6Mode = comparisonTarget === 'balanced_v6';
+    const activeRenovationSelections = isV6Mode
+      ? Object.fromEntries(
+          CATEGORY_ORDER.filter(cat => renovationSelections[cat])
+            .map(cat => [cat, renovationSelections[cat]])
+        )
+      : {};
+    const hasRenovationSelections = Object.keys(activeRenovationSelections).length > 0;
+    const extraHeaders = contractorId.trim() && hasRenovationSelections
+      ? { 'X-Contractor-Id': contractorId.trim() }
+      : {};
 
     const createFormData = () => {
       const fd = new FormData();
@@ -306,6 +588,10 @@ export default function App() {
       moodFiles.forEach(f => fd.append('moodBoardImages', f));
       if (furnitureImg.file) fd.append('furnitureImage', furnitureImg.file);
       if (prevImg.file) fd.append('previousResultImage', prevImg.file);
+      // V6.0: include renovation selections when active
+      if (hasRenovationSelections) {
+        fd.append('renovationSelectionIds', JSON.stringify(activeRenovationSelections));
+      }
       return fd;
     };
 
@@ -318,6 +604,9 @@ export default function App() {
       furnitureImage: furnitureImg.file?.name || null,
       previousResultImage: prevImg.file?.name || null,
       sentAt: ts(),
+      // V6.0
+      contractorId: hasRenovationSelections ? contractorId.trim() : null,
+      renovationSelectionIds: hasRenovationSelections ? activeRenovationSelections : null,
     });
 
     setStatus('loading');
@@ -331,8 +620,8 @@ export default function App() {
       if (compareMode) {
         // Run both in parallel — target pipeline is user-selectable
         const [baseline, target] = await Promise.all([
-          callPipeline(createFormData(), 'baseline_original'),
-          callPipeline(createFormData(), comparisonTarget)
+          callPipeline(createFormData(), 'baseline_original', extraHeaders),
+          callPipeline(createFormData(), comparisonTarget, extraHeaders)
         ]);
 
         setBaselineResult(`data:image/png;base64,${baseline.data.image}`);
@@ -342,7 +631,7 @@ export default function App() {
         setTiming(`Baseline: ${baseline.elapsed} · ${PIPELINE_LABELS[comparisonTarget] ?? comparisonTarget}: ${target.elapsed}`);
         setStatus('success');
       } else {
-        const result = await callPipeline(createFormData(), comparisonTarget);
+        const result = await callPipeline(createFormData(), comparisonTarget, extraHeaders);
         setResultImg(`data:image/png;base64,${result.data.image}`);
         setImprovedDebug(result.data.debug);
         setMeta({ message: result.message, metadata: result.data.metadata, httpStatus: 200, elapsed: result.elapsed });
@@ -353,7 +642,7 @@ export default function App() {
       setRawError(err);
       setStatus('error');
     }
-  }, [roomImg, roomType, presetName, presetUrl, isRefinement, textPrompt, moodFiles, furnitureImg, prevImg, compareMode, comparisonTarget]);
+  }, [roomImg, roomType, presetName, presetUrl, isRefinement, textPrompt, moodFiles, furnitureImg, prevImg, compareMode, comparisonTarget, contractorId, renovationSelections]);
 
   const inputStyle = {
     width: '100%', padding: '7px 10px', background: '#0d1117',
@@ -395,6 +684,7 @@ export default function App() {
                <option value="balanced_v4_0">Balanced V4.0</option>
                <option value="balanced_v4_1">Balanced V4.1</option>
                <option value="balanced_v5">Balanced V5.1 (Lean — Moodboard)</option>
+               <option value="balanced_v6">Balanced V6.0 (Service Provider Catalogue)</option>
                <option value="improved_current">Improved Current</option>
              </select>
           </div>
@@ -500,6 +790,20 @@ export default function App() {
               rows={3} style={{ ...inputStyle, resize: 'vertical', fontFamily: 'inherit' }} {...focus} />
           </Section>
 
+          {comparisonTarget === 'balanced_v6' && <Section title="Service Provider Catalogue (V6.0)">
+            <CataloguePanel
+              contractorId={contractorId}
+              setContractorId={setContractorId}
+              catalogueItems={catalogueItems}
+              catalogueLoading={catalogueLoading}
+              catalogueError={catalogueError}
+              onLoad={loadCatalogue}
+              renovationSelections={renovationSelections}
+              onSelect={handleCatalogueSelect}
+              onClear={handleCatalogueClear}
+            />
+          </Section>}
+
           <button type="submit" disabled={!roomImg.file || status === 'loading'}
             style={{
               width: '100%', padding: '10px 0', fontWeight: 700, fontSize: 14,
@@ -563,6 +867,7 @@ export default function App() {
                   ↓ Download image
                 </a>
               </div>
+              <RenovationDebugPanel debug={improvedDebug} />
               <MetaPanel meta={{ debug: improvedDebug }} />
             </div>
           )}

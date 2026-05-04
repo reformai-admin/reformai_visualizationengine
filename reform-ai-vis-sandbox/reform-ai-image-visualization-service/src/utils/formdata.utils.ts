@@ -8,7 +8,7 @@ import {
     parseJSON,
 } from '../utils/validation.utils.js';
 import { generateVisualizationSchema } from '../schemas/visualization.schema.js';
-import { StylePreset, InjectedItem } from '../types.js';
+import { StylePreset, InjectedItem, RenovationSelectionIds } from '../types.js';
 import { STYLE_REGISTRY } from '../data/styles.js';
 
 /**
@@ -30,6 +30,9 @@ export interface ProcessedVisualizationData {
     pipelineMode: 'baseline_original' | 'balanced_v1' | 'balanced_v2' | 'balanced_v2_1' | 'balanced_v2_2' | 'balanced_v3_0' | 'balanced_v4_0' | 'balanced_v4_1' | 'balanced_v5' | 'improved_current';
     // Previous generated image for refinement context
     previousResultImage?: MultipartFile & { buffer: Buffer };
+    // V6.0: catalogue integration
+    contractorId?: string;
+    renovationSelectionIds?: RenovationSelectionIds;
 }
 
 /**
@@ -37,7 +40,9 @@ export interface ProcessedVisualizationData {
  */
 export const processVisualizationFormData = async (
     parts: AsyncIterableIterator<Multipart>,
-    queryMode?: 'baseline_original' | 'balanced_v1' | 'balanced_v2' | 'balanced_v2_1' | 'balanced_v2_2' | 'balanced_v3_0' | 'balanced_v4_0' | 'balanced_v4_1' | 'balanced_v5' | 'improved_current'
+    queryMode?: 'baseline_original' | 'balanced_v1' | 'balanced_v2' | 'balanced_v2_1' | 'balanced_v2_2' | 'balanced_v3_0' | 'balanced_v4_0' | 'balanced_v4_1' | 'balanced_v5' | 'improved_current',
+    // V6.0: resolved from request header (X-Contractor-Id) by the controller
+    contractorId?: string,
 ): Promise<ProcessedVisualizationData> => {
     const fields: Record<string, string | boolean> = {};
     const files: Record<string, MultipartFile | MultipartFile[]> = {};
@@ -111,6 +116,11 @@ export const processVisualizationFormData = async (
         };
     }
 
+    // V6.0: parse renovation selection IDs (JSON-encoded form field)
+    const renovationSelectionIds: RenovationSelectionIds | undefined = fields['renovationSelectionIds']
+        ? parseJSON<RenovationSelectionIds>(fields['renovationSelectionIds'].toString(), 'renovationSelectionIds')
+        : undefined;
+
     const dataToValidate = {
         roomType: fields['roomType'],
         textPrompt: fields['textPrompt'],
@@ -121,6 +131,7 @@ export const processVisualizationFormData = async (
         phaseAnchoringV2,
         pipelineMode,
         stylePreset,
+        renovationSelectionIds,
     };
 
     // Validar con Zod
@@ -154,5 +165,7 @@ export const processVisualizationFormData = async (
         phaseAnchoringV2: validatedData.phaseAnchoringV2,
         pipelineMode: validatedData.pipelineMode ?? pipelineMode,
         previousResultImage,
+        contractorId,
+        renovationSelectionIds: validatedData.renovationSelectionIds,
     };
 }

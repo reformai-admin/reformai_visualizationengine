@@ -18,6 +18,10 @@ export default defineConfig(({ mode }) => {
           target: apiBase,
           changeOrigin: true,
         },
+        '/api/catalogue': {
+          target: apiBase,
+          changeOrigin: true,
+        },
       },
     },
   };

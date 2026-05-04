@@ -1,6 +1,7 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { processVisualizationFormData } from '../utils/formdata.utils.js';
 import { ValidationError } from '../utils/validation.utils.js';
+import { CatalogueValidationError } from '../utils/catalogue.utils.js';
 import { generateVisualization } from '../services/geminiService.js';
 
 export async function generateVisualizationController(
@@ -17,7 +18,9 @@ export async function generateVisualizationController(
 
     const parts = request.parts();
     const queryMode = (request.query as any)?.mode as 'baseline_original' | 'balanced_v1' | 'balanced_v2' | 'balanced_v2_1' | 'balanced_v2_2' | 'balanced_v3_0' | 'balanced_v4_0' | 'balanced_v4_1' | 'improved_current' | undefined;
-    const data = await processVisualizationFormData(parts, queryMode);
+    // V6.0: contractorId resolved from header — never from request body
+    const contractorId = (request.headers['x-contractor-id'] as string) || undefined;
+    const data = await processVisualizationFormData(parts, queryMode, contractorId);
     const result = await generateVisualization(data);
 
     return reply.status(200).send({
@@ -37,6 +40,14 @@ export async function generateVisualizationController(
     if (error instanceof ValidationError) {
       return reply.status(400).send({
         error: 'Validation Error',
+        message: error.message,
+      });
+    }
+
+    // V6.0: catalogue validation failures (invalid ID, category mismatch, tenant violation)
+    if (error instanceof CatalogueValidationError) {
+      return reply.status(400).send({
+        error: 'Catalogue Validation Error',
         message: error.message,
       });
     }

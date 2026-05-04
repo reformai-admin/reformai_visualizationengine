@@ -1,6 +1,6 @@
 // ============================================================
-// BALANCED V5 — PROMPT CONSTANTS
-// TEMPLATE VERSION: 5.2
+// BALANCED V5 / V6.0 — PROMPT CONSTANTS
+// TEMPLATE VERSION: 6.0
 // COMPATIBLE WITH: pipelineMode "balanced_v5"
 //
 // V5.0 (initial Lean Moodboard release):
@@ -104,7 +104,18 @@
 //            This file does not modify any shared mutable state.
 // ============================================================
 
-export const TEMPLATE_VERSION = '5.2.1';
+// V6.0 additions (catalogue integration — no changes to V5.2.1 template text):
+//   - buildConstraintHierarchyBlock: adds optional hasRenovationAnchors parameter;
+//     emits TIER 2B [ACTIVE/INACTIVE] between TIER 2 and TIER 3
+//   - buildRenovationAnchorsBlock: NEW — builds the full TIER 2B prompt block
+//     from ResolvedRenovationSelections; returns empty string when no anchors active
+//   - TEMPLATE_VERSION bumped to 6.0.0
+//
+// V5 template strings (BALANCED_V5_STRUCTURAL_PART, BALANCED_V5_STYLE_TEMPLATE,
+// INJECTED_ITEM_AUDIT_TEXT, buildMoodboardScopeBlock, V5_MOODBOARD_INFLUENCE_STATEMENT)
+// are UNCHANGED and frozen.
+
+export const TEMPLATE_VERSION = '6.0.0';
 export const PIPELINE_MODE = 'balanced_v5';
 
 
@@ -295,7 +306,11 @@ export { INJECTED_ITEM_AUDIT_TEXT } from '../balanced_v4_0/visualization.constan
 //   - TIER 3–5: multi-bullet blocks → single inline rule per tier
 //   - TIER 1 body: unchanged (back-reference + enum retained as canonical summary)
 // ─────────────────────────────────────────────────────────────────────────────
-export const buildConstraintHierarchyBlock = (injectedItemCount: number): string => {
+// V6.0: hasRenovationAnchors defaults to false — all prior callers remain unchanged.
+export const buildConstraintHierarchyBlock = (
+    injectedItemCount: number,
+    hasRenovationAnchors = false,
+): string => {
     const tier2Active = injectedItemCount > 0;
 
     const tier2Header = tier2Active
@@ -310,6 +325,17 @@ export const buildConstraintHierarchyBlock = (injectedItemCount: number): string
           '  this is intentional, not a style fidelity failure.\n'
         : '\n';
 
+    const tier2bHeader = hasRenovationAnchors
+        ? 'TIER 2B — RENOVATION MATERIAL ANCHORS [ACTIVE — see full anchor block below]'
+        : 'TIER 2B — RENOVATION MATERIAL ANCHORS [INACTIVE — no renovation selections in this request]';
+
+    const tier2bBody = hasRenovationAnchors
+        ? '\n' +
+          '  Fixed contractor catalogue selections override Tier 4 style transformation on the\n' +
+          '  surfaces they specify. Full per-surface rules follow in the Renovation Anchors block.\n' +
+          '  Anchors apply to existing room components only — not to injected items (Tier 2).\n'
+        : '\n';
+
     return [
         '**CONSTRAINT HIERARCHY — READ THIS BEFORE ALL OTHER INSTRUCTIONS:**',
         'Apply in strict priority order. TIER 1 overrides all; each tier overrides those below it.',
@@ -322,11 +348,13 @@ export const buildConstraintHierarchyBlock = (injectedItemCount: number): string
         '',
         tier2Header,
         tier2Body,
+        tier2bHeader,
+        tier2bBody,
         'TIER 3 — ROOM FUNCTION AND SPATIAL LOGIC',
         '  Furniture layout must support room function; spatial relationships must remain plausible and navigable.',
         '',
         'TIER 4 — STYLE TRANSFORMATION',
-        '  Apply the selected style through non-injected furniture, surfaces, and decor. Must not override Tiers 1–3.',
+        '  Apply the selected style through non-injected furniture, surfaces, and decor. Must not override Tiers 1–2B.',
         '',
         'TIER 5 — MOODBOARD INFLUENCE',
         '  Apply moodboard influence as a tonal overlay on top of the style — palette, light quality, and surface finish. It tints; it does not compete. Does not override Tiers 1–4.',
@@ -419,3 +447,118 @@ export {
     INFLUENCE_PRESET_STYLE_ONLY,
     DEFAULT_USER_REQUEST,
 } from '../improved/visualization.constants.js';
+
+
+// ── RENOVATION MATERIAL ANCHORS BLOCK (V6.0) ─────────────────────────────────
+//
+// Builds the full TIER 2B prompt block from resolved prompt descriptions.
+// Returns empty string when no selections are active — the service checks
+// for empty string before inserting a parts entry (same contract as
+// buildMoodboardScopeBlock).
+//
+// Anchor ordering: canonical (flooring → walls → countertops → cabinets).
+// Each anchor has three components:
+//   APPLY TO — target surface with geometric descriptor
+//   BOUNDARY — named stopping point + adjacent surfaces to exclude
+//   NON-NEGOTIABLE — explicit override prohibition
+//
+// The COMPLIANCE, VISIBILITY GATE, and ANCHOR SELF-CHECK are global
+// preamble/postamble — rendered once regardless of active anchor count.
+//
+// promptDescription strings are pre-validated by catalogue.utils.ts.
+// This function trusts that the input is clean — no further validation here.
+// ─────────────────────────────────────────────────────────────────────────────
+
+import { ResolvedRenovationSelections, RenovationCategory } from '../../types.js';
+
+const CATEGORY_RENDER_ORDER: RenovationCategory[] = [
+    'flooring',
+    'walls',
+    'countertops',
+    'cabinets',
+];
+
+interface AnchorConfig {
+    label: string;
+    applyTo: string;
+    boundary: string;
+    nonNegotiable: string;
+}
+
+const ANCHOR_CONFIGS: Record<RenovationCategory, AnchorConfig> = {
+    flooring: {
+        label: 'FLOORING',
+        applyTo: 'the horizontal floor plane.',
+        boundary: 'Stop at the base of walls. Do not extend to baseboards, wall bases, or thresholds.',
+        nonNegotiable: 'Do not apply any other material to this surface. Style transformation, core materials, and color palette do not override this selection.',
+    },
+    walls: {
+        label: 'WALLS',
+        applyTo: 'all visible vertical wall surfaces.',
+        boundary: 'Stop at the ceiling plane above and the floor plane below. Do not extend to the ceiling or floor material.',
+        nonNegotiable: 'Do not apply any other wall finish to these surfaces. Style transformation, core materials, and color palette do not override this selection.',
+    },
+    countertops: {
+        label: 'COUNTERTOPS',
+        applyTo: 'the visible horizontal work surface spanning the top of base cabinets or lower storage units — a flat, continuous horizontal plane running along the walls.',
+        boundary: 'Stop at the backsplash, cabinet door faces, and adjacent walls. Do not extend to those surfaces. Do not apply to cutting boards, appliances, or objects resting on the countertop.',
+        nonNegotiable: 'Do not apply any other material to the countertop surface. Style transformation does not override this selection.',
+    },
+    cabinets: {
+        label: 'CABINETS',
+        applyTo: 'door and drawer faces of built-in cabinetry only — wall-mounted upper cabinets and lower base cabinets structurally integrated into the room. Do not apply to freestanding furniture, open shelving, standalone wardrobes, or any uploaded/injected item regardless of apparent category.',
+        boundary: 'Stop at countertop surfaces above, the floor below, and surrounding wall surfaces.',
+        nonNegotiable: 'Do not apply any other material to cabinet door and drawer faces. Style transformation does not override this selection.',
+    },
+};
+
+export const buildRenovationAnchorsBlock = (
+    selections: ResolvedRenovationSelections,
+): string => {
+    const activeCategories = CATEGORY_RENDER_ORDER.filter(cat => !!selections[cat]);
+
+    if (activeCategories.length === 0) return '';
+
+    const lines: string[] = [
+        `**TIER 2B — RENOVATION MATERIAL ANCHORS [ACTIVE — ${activeCategories.length} anchor${activeCategories.length > 1 ? 's' : ''}]**`,
+        '',
+        'The following are fixed contractor renovation commitments, not style suggestions. They are Tier 2B',
+        'constraints and override Tier 4 style transformation on the surfaces they specify. Style transformation',
+        'applies to furnishings, decor, movable objects, and surfaces not covered by an active anchor.',
+        'It does not apply to anchored surfaces.',
+        '',
+        'COMPLIANCE: ALL active anchors below must be applied. Each is independently mandatory.',
+        'Applying some and omitting others is a failure, not partial compliance.',
+        '',
+        'VISIBILITY GATE: Before applying each anchor, confirm the target surface is clearly visible in the',
+        'source image. If not visible: do not apply the anchor, and do not introduce or invent the component.',
+        'Omitting an anchor for a non-visible surface is correct behavior. Applying an anchor to an invented',
+        'surface is a hallucination error — more serious than non-application.',
+        '',
+        'SCOPE: Material and finish only. Do not alter geometry, position, footprint, spatial layout,',
+        'or camera perspective.',
+        '',
+        '——',
+        '',
+    ];
+
+    activeCategories.forEach((category, index) => {
+        const desc = selections[category]!;
+        const cfg = ANCHOR_CONFIGS[category];
+
+        lines.push(`${index + 1}. ${cfg.label} — "${desc}"`);
+        lines.push(`   Apply to: ${cfg.applyTo}`);
+        lines.push(`   Boundary: ${cfg.boundary}`);
+        lines.push(`   Non-negotiable: ${cfg.nonNegotiable}`);
+        lines.push('');
+    });
+
+    lines.push('——', '');
+    lines.push(
+        'ANCHOR SELF-CHECK — before proceeding to style instructions: confirm each active anchor has been',
+        'applied to its target surface. If any anchor was skipped, apply it before reading further.',
+        'If an anchor surface was not visible, confirm no component was introduced.',
+    );
+
+    return lines.join('\n');
+};

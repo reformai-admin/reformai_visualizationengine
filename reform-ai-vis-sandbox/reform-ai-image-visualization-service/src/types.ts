@@ -1,5 +1,55 @@
 import type { MultipartFile } from '@fastify/multipart';
 
+// ── V6.0: Renovation catalogue types ─────────────────────────────────────────
+
+export type RenovationCategory = 'flooring' | 'walls' | 'countertops' | 'cabinets';
+
+export interface CatalogueItem {
+    // Identity
+    id: string;
+    contractorId: string;
+    category: RenovationCategory;
+
+    // UI-facing — NOT used for prompt generation
+    name: string;
+
+    // Model-facing — REQUIRED, primary anchor description (15-20 words optimal)
+    promptDescription: string;
+
+    // Structured metadata — secondary; fallback enrichment only
+    attributes: {
+        material: string;
+        tone?: 'light' | 'medium' | 'dark' | 'neutral';
+        warmth?: 'warm' | 'cool' | 'neutral';
+        finish?: string;
+        pattern?: string;
+        color?: string;
+    };
+
+    // Lifecycle
+    active: boolean;
+    contractorVisible: boolean;
+
+    // Future: image-based anchoring (Phase 2 — not used in V6.0)
+    imageUrl?: string;
+}
+
+// IDs as received from the request body (before catalogue resolution)
+export interface RenovationSelectionIds {
+    flooring?: string;
+    walls?: string;
+    countertops?: string;
+    cabinets?: string;
+}
+
+// Resolved prompt strings (after catalogue validation and translation)
+export interface ResolvedRenovationSelections {
+    flooring?: string;
+    walls?: string;
+    countertops?: string;
+    cabinets?: string;
+}
+
 // ── V4.0: Injected item abstraction ───────────────────────────────────────────
 // Phase 1: image only. itemType, placementHint, and catalogue metadata
 // fields are added in Phase 2.
@@ -46,4 +96,7 @@ export interface GenerateVisualizationParams {
   pipelineMode?: 'baseline_original' | 'balanced_v1' | 'balanced_v2' | 'balanced_v2_1' | 'balanced_v2_2' | 'balanced_v3_0' | 'balanced_v4_0' | 'balanced_v4_1' | 'balanced_v5' | 'improved_current';
   // Previous generated image for refinement context
   previousResultImage?: (MultipartFile & { buffer: Buffer }) | null;
+  // V6.0: contractor catalogue integration
+  contractorId?: string;
+  renovationSelectionIds?: RenovationSelectionIds;
 }

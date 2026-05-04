@@ -33,10 +33,11 @@
 import { loadEnvFile } from 'node:process';
 import { GoogleGenAI, Modality } from '@google/genai';
 import type { MultipartFile } from '@fastify/multipart';
-import { GenerateVisualizationParams, InjectedItem } from '../../types.js';
+import { GenerateVisualizationParams, InjectedItem, ResolvedRenovationSelections } from '../../types.js';
 import { IMAGE_ROLES } from '../../prompts/imageRoles.js';
 import {
     buildConstraintHierarchyBlock,
+    buildRenovationAnchorsBlock,
     INJECTED_ITEM_BLOCK_HEADER,
 } from '../../prompts/balanced_v5/visualization.constants.js';
 import {
@@ -44,6 +45,11 @@ import {
     buildInfluencePrompt,
     buildMoodboardBlock,
 } from '../../prompts/balanced_v5/visualization.prompt.js';
+import {
+    resolveRenovationSelections,
+    hasActiveSelections,
+    CatalogueValidationError,
+} from '../../utils/catalogue.utils.js';
 
 if (!process.env.K_SERVICE) {
     try {
@@ -76,6 +82,8 @@ export const generateVisualization = async (
         styleInfluence,
         isRefinement,
         previousResultImage,
+        contractorId,
+        renovationSelectionIds,
     } = params;
 
     // ── Resolve injected items ────────────────────────────────────────────────
@@ -97,6 +105,20 @@ export const generateVisualization = async (
     const hasInjectedItem = item !== null;
     const hasMoodboards = moodBoardImages.length > 0;
 
+    // ── Resolve renovation selections (V6.0) ──────────────────────────────────
+    let resolvedRenovationSelections: ResolvedRenovationSelections | null = null;
+
+    if (contractorId && hasActiveSelections(renovationSelectionIds)) {
+        resolvedRenovationSelections = await resolveRenovationSelections(
+            contractorId,
+            renovationSelectionIds!,
+        );
+    }
+
+    const hasRenovationAnchors =
+        resolvedRenovationSelections !== null &&
+        Object.values(resolvedRenovationSelections).some(Boolean);
+
     // ── Resolve staging density for scope block ───────────────────────────────
     const stagingDensity = (stylePreset.pipeline_config?.staging_density ?? 'medium') as 'low' | 'medium' | 'high';
 
@@ -115,7 +137,14 @@ export const generateVisualization = async (
         hasInjectedItem,
     });
 
-    const constraintHierarchyBlock = buildConstraintHierarchyBlock(injectedItems.length);
+    const constraintHierarchyBlock = buildConstraintHierarchyBlock(
+        injectedItems.length,
+        hasRenovationAnchors,
+    );
+
+    const renovationAnchorsBlock = buildRenovationAnchorsBlock(
+        resolvedRenovationSelections ?? {},
+    );
 
     const moodboardScopeBlock = buildMoodboardBlock(
         stylePreset.name,
@@ -142,6 +171,11 @@ export const generateVisualization = async (
 
     // 4. Structural part
     parts.push({ text: structuralPart });
+
+    // 4.5. Renovation anchors block (conditional — only when selections are active)
+    if (renovationAnchorsBlock) {
+        parts.push({ text: renovationAnchorsBlock });
+    }
 
     // 5. Style part
     parts.push({ text: stylePart });
@@ -195,12 +229,21 @@ export const generateVisualization = async (
             image: firstPart.inlineData.data,
             debug: {
                 pipelineMode: 'balanced_v5',
-                templateVersion: '5.2.1',
+                templateVersion: '6.0.0',
                 hasInjectedItem,
                 injectedItem: item ? { shimmedFromFurnitureImage: !params.injectedItems?.length } : null,
                 moodboardScopeBlockInserted: hasMoodboards,
                 moodboardCount: moodBoardImages.length,
                 stagingDensity,
+                // V6.0: catalogue integration debug fields
+                contractorId: contractorId ?? null,
+                renovationSelectionIds: renovationSelectionIds ?? null,
+                resolvedRenovationSelections: resolvedRenovationSelections ?? null,
+                renovationAnchorsInserted: hasRenovationAnchors,
+                renovationAnchorCount: hasRenovationAnchors
+                    ? Object.values(resolvedRenovationSelections!).filter(Boolean).length
+                    : 0,
+                renovationAnchorsBlock: renovationAnchorsBlock || null,
                 requestStructure: parts.map(p =>
                     'text' in p
                         ? (p.text.startsWith('[') ? `LABEL:${p.text.slice(1, p.text.indexOf(']'))}` : 'TEXT')

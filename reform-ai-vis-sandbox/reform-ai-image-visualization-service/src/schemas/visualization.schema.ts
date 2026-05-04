@@ -23,6 +23,14 @@ export const stylePresetSchema = z.object({
     imageUrl: z.string().url('La URL de la imagen debe ser válida').optional(),
 });
 
+// V6.0: Renovation selection IDs schema (catalogue item IDs, not descriptions)
+export const renovationSelectionIdsSchema = z.object({
+    flooring:    z.string().optional(),
+    walls:       z.string().optional(),
+    countertops: z.string().optional(),
+    cabinets:    z.string().optional(),
+}).optional();
+
 // Esquema para validar los datos del FormData
 export const generateVisualizationSchema = z.object({
     roomType: z.string().min(1, 'El tipo de habitación es requerido'),
@@ -35,6 +43,8 @@ export const generateVisualizationSchema = z.object({
     phaseAnchoringV2: z.boolean().optional().default(false),
     pipelineMode: z.enum(['baseline_original', 'balanced_v1', 'balanced_v2', 'balanced_v2_1', 'balanced_v2_2', 'balanced_v3_0', 'balanced_v4_0', 'balanced_v4_1', 'balanced_v5', 'improved_current']).optional().default('improved_current'),
     stylePreset: stylePresetSchema,
+    // V6.0: catalogue selection IDs — resolved server-side via translation layer
+    renovationSelectionIds: renovationSelectionIdsSchema,
 });
 
 // Tipos inferidos de los schemas
