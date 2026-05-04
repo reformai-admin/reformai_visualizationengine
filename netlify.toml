@@ -1,9 +1,9 @@
 [build]
-  command = "npm run build --workspace=reform-ai-vis-sandbox"
+  command = "cd reform-ai-vis-sandbox && npm install && npm run build"
   publish = "reform-ai-vis-sandbox/dist"
 
 [build.environment]
-  NODE_VERSION = "20"
+  NODE_VERSION = "18"
 
 [[redirects]]
   from = "/generate-visualization"
