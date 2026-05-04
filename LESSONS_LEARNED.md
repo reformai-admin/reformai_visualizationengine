@@ -1,6 +1,6 @@
 # ReformAI Visualization Engine — Lessons Learned
-**Last Updated:** 2026-04-24
-**Sessions Covered:** Phase Anchoring → Style Registry → A/B Sandbox → Prompt Optimization → Template Engine (v3.0)
+**Last Updated:** 2026-05-04
+**Sessions Covered:** Phase Anchoring → Style Registry → A/B Sandbox → Prompt Optimization → Template Engine (v3.0) → V4.0–V5.2.1 → V6.0 Renovation Anchors
 
 ---
 
@@ -204,3 +204,63 @@ Writing code against a validated spec produced zero rework. Every file was corre
 The `BALANCED` (medium) and `LAYERED` (high) density blocks were ported from v2.3 with wording optimizations but have not been regression-tested against v3.0 baseline images. They are marked TODO in `densityBlocks.ts`.
 
 **Do not declare v3.0 production-ready until these pass behavioral regression against v2.2 for the same density tier.**
+
+---
+
+## 4. V6.0 Lessons — Renovation Material Anchors
+
+### ✅ Tier Numbering: Insert Between, Don't Renumber
+When adding a new constraint tier between existing tiers, use a sub-designation ("Tier 2B") rather than renumbering. Renumbering breaks all existing documentation and any prompt text that references tier numbers by name. "2B" communicates placement and priority unambiguously without invalidating anything upstream.
+
+---
+
+### ✅ Prompt-Only Semantic Anchoring Requires Surface-Specific Boundary Language
+A general "use this material" instruction bleeds across surfaces. Reliable anchoring requires three explicit sub-instructions per surface:
+- **APPLY TO:** Exactly which surface planes are in scope (e.g. "horizontal floor plane only")
+- **BOUNDARY:** Where to stop (e.g. "stop at the base of walls, do not climb vertical surfaces")
+- **NON-NEGOTIABLE:** A hard override statement that preempts style (e.g. "Do not apply any other flooring material regardless of style preset")
+
+Without all three, partial compliance and surface bleed are predictable failure modes.
+
+---
+
+### ✅ VISIBILITY GATE Prevents Hallucinated Surfaces
+When a surface anchored by a catalogue item may not be visible in a given room image (e.g. countertops in a living room shot), the model will hallucinate the surface if the anchor block is unconditional. The fix: add an explicit gate before the per-anchor instruction: *"If this surface type is not visible in the room image, skip this anchor entirely. Do not hallucinate the surface."* This is non-negotiable for countertops and cabinets.
+
+---
+
+### ✅ Translation Layer Is the Only Point of Trust for Prompt Strings
+The client sends catalogue item IDs, never prompt strings. The translation layer (`catalogue.utils.ts`) is the sole point that resolves IDs to `promptDescription` strings. The service never receives raw descriptions from the client — only IDs it validates against the tenant's scoped catalogue. This prevents prompt injection and ensures the model only sees curated, validated language.
+
+**Rule:** Anything that reaches a model prompt must pass through a validation + resolution layer. Never allow client-supplied strings to reach the prompt directly.
+
+---
+
+### ✅ Async-First Translation Layer Enables Drop-In DB Replacement
+The `resolveRenovationSelections()` function is `async` even for the in-memory POC. This means the calling service code (`geminiService.ts`) uses `await` at the resolution step. When a real database replaces the in-memory registry, the service call site is unchanged — only the implementation inside the translation layer changes.
+
+**Rule:** If a function touches data that will eventually live in a database, make it async from day one, even if the current implementation is synchronous.
+
+---
+
+### ✅ Gate Feature Data on Pipeline Mode, Not Just on Data Presence
+V6.0 renovation data (selections in state) can persist in the sandbox UI when the user switches back to V5.1. If renovation data were sent based only on whether selections exist — not on whether V6.0 is the active pipeline — V5.1 requests would unexpectedly include renovation fields.
+
+**Rule:** Feature data must be gated on the active pipeline/mode, not just on state presence. The V6.0 sandbox gates `hasRenovationSelections` on `comparisonTarget === 'balanced_v6'`.
+
+---
+
+### ✅ Default Parameters Preserve Backward Compatibility at Call Sites
+`buildConstraintHierarchyBlock(injectedItemCount, hasRenovationAnchors = false)` — adding the second parameter with a default means every existing caller continues to work with zero changes. The new behavior only activates when explicitly opted in.
+
+**Rule:** Extend function signatures with default parameters rather than adding new functions or requiring callers to update. Backward compatibility is free when defaults are the prior behavior.
+
+---
+
+### ✅ Tier 2B Overrides Tier 4 (Style) on Anchored Surfaces Only
+Renovation anchors do not suppress style globally — they override style only on the specific anchored surface. This is the correct scope: a flooring anchor overrides what the floor looks like, but the style preset still controls wall color, furniture selection, lighting, etc. The "on anchored surfaces only" qualifier is load-bearing in the Tier 4 reference text.
+
+---
+
+### ✅ Pipeline Separation in the Sandbox UI Is Worth the Extra Option
+Showing the catalogue panel on every pipeline mode would mislead testing — renovation data being sent without the backend expecting it could corrupt non-V6 results. Gating the entire catalogue section on the `balanced_v6` selection makes it impossible to accidentally pollute a V5.1 test. The cost is one extra dropdown option; the benefit is zero cross-contamination risk during validation.

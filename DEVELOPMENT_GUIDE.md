@@ -1,5 +1,5 @@
 # ReformAI Visualization Engine — Project README
-**Last Updated:** 2026-04-28
+**Last Updated:** 2026-05-04
 
 ---
 
@@ -23,10 +23,13 @@ Visualization_Engine/
 │   ├── src/                          ← Vite + React frontend (Dev Sandbox UI)
 │   └── reform-ai-image-visualization-service/
 │       └── src/
-│           ├── index.ts              ← Fastify server entry (Port 8080)
-│           ├── pipelines/            # Future: Core visualization logic
-│           ├── prompts/              ← Versioned prompt templates (Balanced V4.0)
-│           └── services/             ← Pipeline implementations (v2, v3, v4.0)
+│           ├── index.ts              ← Fastify server entry (Port 8080) + /api/catalogue route
+│           ├── data/
+│           │   └── catalogues.ts     ← In-memory contractor catalogue registry (POC)
+│           ├── utils/
+│           │   └── catalogue.utils.ts← Translation layer: IDs → validated promptDescriptions
+│           ├── prompts/              ← Versioned prompt templates
+│           └── services/             ← Pipeline implementations (v2, v3, v4.0, v5/v6)
 ├── Visualization_Engine_Baseline/    ← IMMUTABLE REFERENCE BASELINE
 ├── tests/                            ← TEST & EVALUATION INFRASTRUCTURE
 │   ├── regression/                   ← Shared regression runner (15-style matrix)
@@ -91,6 +94,12 @@ The regression suite automatically triggers the **Prompt Optimizer** if an `ANTH
 ---
 
 ## 🛠️ Key Reference Docs
-- [Project Handoff Roadmap](file:///c:/Users/cjlea/.gemini/antigravity/brain/2a7630ca-048e-4816-abab-54fcbc517b7d/project_handoff_roadmap.md)
-- [Dependency Audit & Revised Plan](file:///c:/Users/cjlea/.gemini/antigravity/brain/2a7630ca-048e-4816-abab-54fcbc517b7d/dependency_audit_and_revised_plan.md)
-- `docs/reference-documents/V4_0_SYSTEM_AND_PRODUCT_SPEC.md`
+
+| Document | Location | Purpose |
+|---|---|---|
+| V4.0 System & Product Spec | `docs/reference-documents/V4_0_SYSTEM_AND_PRODUCT_SPEC.md` | Canonical architecture spec (V4.0 → V5.x → V6.0 appendix) |
+| Phase 1 Playbook | `docs/reference-documents/VISUALIZATION_PHASE_1_PLAYBOOK.md` | Historical execution plan (status: complete) |
+| Active pipeline tracker | `reform-ai-vis-sandbox/reform-ai-image-visualization-service/docs/CURRENT_STATE.md` | Per-version release notes, open items, T1–T10 test plan |
+| V5 compression changelog | `reform-ai-vis-sandbox/reform-ai-image-visualization-service/docs/V5_COMPRESSION_CHANGELOG.md` | V5.1 compression detail |
+| Lessons Learned | `LESSONS_LEARNED.md` | Engineering lessons V1 → V6.0 |
+| Current State | `CURRENT_STATE.md` | Top-level pipeline status summary |

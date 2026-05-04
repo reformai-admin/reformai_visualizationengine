@@ -1,8 +1,8 @@
 # ReformAI Visualization Engine — V4.0 System & Product Specification
 
-**Document version:** 1.0  
-**Status:** Pre-implementation — approved for build  
-**Date:** 2026-04-28  
+**Document version:** 1.1  
+**Status:** Implemented through V6.0 — see Appendix A for V6.0 additions  
+**Date:** 2026-04-28 (updated 2026-05-04)  
 **Supersedes:** VISUALIZATION_PHASE_1_PLAYBOOK.md (operational guidance), ad-hoc session notes  
 **Audience:** Engineers implementing or extending the visualization service
 
@@ -1285,3 +1285,70 @@ The tier hierarchy, tier count, and all other tiers are unchanged from V4.0.
 | Pricing tier alignment | Deferred |
 
 All deferred items from the V4.0 roadmap remain valid future work. They were deprioritized in favor of the moodboard reliability track (V5.0 → V5.2.1).
+
+---
+
+## Appendix A — V6.0: Tier 2B Renovation Material Anchors (2026-05-04)
+
+### Overview
+
+V6.0 extends V5.2.1 with a new constraint tier — **Tier 2B: Renovation Material Anchors** — that sits between Tier 2 (injected item identity) and Tier 3 (room function). This is distinct from the Section 9 catalogue concept: Section 9 covers **injected items** (furniture/products placed into the scene via images). Tier 2B covers **renovation surface materials** (flooring, walls, countertops, cabinets) specified entirely through prompt constraints with no additional image parts.
+
+### Key Distinction: Tier 2 vs Tier 2B
+
+| Dimension | Tier 2 — Injected Items | Tier 2B — Renovation Anchors |
+|---|---|---|
+| Input mechanism | Image uploaded to multipart request | Catalogue item ID in `renovationSelectionIds` JSON field |
+| What reaches the model | Image buffer + metadata text | Prompt text only (`promptDescription` string) |
+| Constraint type | Identity preservation (PRESERVE / APPLY / NEVER) | Surface material specification (APPLY TO / BOUNDARY / NON-NEGOTIABLE) |
+| Fidelity mode | `preserve` (user) / `exact` (catalogue) | N/A — prompt-only; no image reference |
+| Scope | Specific injected object | Named room surface plane(s) |
+| Scaling path | Richer metadata, better photography | Add `imageUrl` to CatalogueItem for material reference images |
+
+### Architecture
+
+**Request flow:**
+```
+Client → X-Contractor-Id header + renovationSelectionIds FormData field
+       → controller (reads header, passes to processVisualizationFormData)
+       → formdata.utils (parses JSON field)
+       → geminiService (calls resolveRenovationSelections)
+       → catalogue.utils (6-rule validation per item)
+       → buildRenovationAnchorsBlock (constructs Tier 2B prompt text)
+       → inserted at prompt position 4.5 (after injected items, before structural)
+```
+
+**Catalogue endpoint:**
+```
+GET /api/catalogue
+Header: X-Contractor-Id: <contractorId>
+→ { contractorId, items: CatalogueItem[] }  (active + contractorVisible only)
+```
+
+**Multi-tenant isolation:** `contractorId` is resolved from the `X-Contractor-Id` request header only — never from the request body. Each item is validated to confirm it belongs to the requesting contractor. Cross-contractor access returns `CatalogueValidationError` (400).
+
+### Tier 2B Prompt Block Structure
+
+When active, the block contains:
+1. **COMPLIANCE** — Priority declaration (overrides Tier 4 style on anchored surfaces only)
+2. **VISIBILITY GATE** — Skip anchor entirely if the surface is not visible; do not hallucinate
+3. **SCOPE** — List of active anchor categories
+4. Per anchor: **APPLY TO** (exact surface plane) + **BOUNDARY** (where to stop) + **NON-NEGOTIABLE** (hard override)
+5. **ANCHOR SELF-CHECK** — Pre-generation verification step
+
+### Backward Compatibility
+
+When `renovationSelectionIds` is absent or `contractorId` is missing:
+- `hasRenovationAnchors` remains `false`
+- Tier 2B shows `[INACTIVE]` in the constraint hierarchy
+- No anchor block is inserted
+- Output is bit-identical to V5.2.1
+
+### Validation Plan (T1–T10)
+
+See `reform-ai-vis-sandbox/reform-ai-image-visualization-service/docs/CURRENT_STATE.md` for the full test matrix.
+
+Target compliance rates: flooring ≥85%, walls ≥85%, countertops ≥75%, cabinets ≥75%.
+
+Scaling trigger: if countertop or cabinet compliance falls below 75%, activate `CatalogueItem.imageUrl` to provide material reference images (already in the type schema, currently unused).
+

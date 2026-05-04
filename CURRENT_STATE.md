@@ -1,5 +1,5 @@
 # ReformAI Visualization Engine — Current State
-**Last Updated:** 2026-04-30
+**Last Updated:** 2026-05-04
 
 ---
 
@@ -12,10 +12,13 @@
 | Pipeline | Template | Status | Role |
 | :--- | :--- | :--- | :--- |
 | `balanced_v5` | **5.2.1** | ✅ **Active — production candidate** | Moodboard-aware; overlay relationship mode; structural anchoring |
+| `balanced_v6` | **6.0.0** | 🧪 **POC — Tier 2B Renovation Anchors** | V5.2.1 + contractor catalogue material selections (prompt-only) |
 | `balanced_v4_1` | 4.1 | 🔒 Frozen | ~21% compression vs V4.0; signature elements |
 | `balanced_v4_0` | 4.0 | 🔒 Frozen | Constraint hierarchy + image role labeling introduced |
 | `balanced_v3_0` | 3.1 | 🔒 Frozen | Template-driven injection; density registry |
 | `baseline_original` | — | 🔒 Frozen | Untouched production baseline (regression anchor) |
+
+`balanced_v6` is a sandbox alias — it routes to `balanced_v5` internally. The Tier 2B catalogue path activates only when `X-Contractor-Id` header + `renovationSelectionIds` FormData field are present.
 
 Full version history: `reform-ai-vis-sandbox/reform-ai-image-visualization-service/docs/CURRENT_STATE.md`
 
@@ -45,6 +48,14 @@ Full version history: `reform-ai-vis-sandbox/reform-ai-image-visualization-servi
 - Structural violations: 0 (fixed from V5.1 regression — Industrial window additions)
 - V5.2.1 Hybrid C patch: material leakage closed; floor-vs-ceiling paradox resolved
   via overlay relationship mode ("tints; does not compete")
+
+### V6.0 — Tier 2B Renovation Material Anchors (2026-05-04)
+- New constraint tier (Tier 2B) between Tier 2 (injected items) and Tier 3 (room function)
+- Multi-tenant contractor catalogue: `X-Contractor-Id` header scopes items per contractor
+- Translation layer: `RenovationSelectionIds` (client IDs) → 6-rule validation → `ResolvedRenovationSelections` (promptDescription strings) → Tier 2B anchor block
+- `/api/catalogue` GET endpoint returns active, visible items for a contractor
+- Sandbox UI: `balanced_v6` pipeline option shows Service Provider Catalogue panel (category cards, selection state, live request preview, Renovation Debug panel)
+- Backward compatible: V5.2.1 output is bit-identical when no renovation fields are sent
 
 ---
 
