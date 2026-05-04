@@ -1,5 +1,9 @@
 [functions]
   directory = "netlify/functions"
+  node_bundler = "esbuild"
+
+[functions."api"]
+  timeout = 26
 
 [build]
   command = "cd reform-ai-vis-sandbox && npm install && npm run build"
