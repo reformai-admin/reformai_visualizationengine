@@ -579,7 +579,7 @@ export default function App() {
       const fd = new FormData();
       fd.append('roomImage', roomImg.file);
       fd.append('roomType', roomType);
-      fd.append('stylePreset', JSON.stringify({ name: presetName, imageUrl: '' }));
+      fd.append('stylePreset', JSON.stringify({ name: presetName }));
       fd.append('styleInfluence', '0');
       fd.append('isRefinement', String(isRefinement));
       // Removed hardcoded phaseAnchoring - let the backend decide based on query mode
