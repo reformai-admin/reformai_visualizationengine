@@ -20,7 +20,7 @@ export const stylePresetSchema = z.object({
         structural_protocol: z.string().optional().default('rigid_base'),
         staging_density: z.enum(['low', 'medium', 'high']).optional(),
     }).optional().default({ structural_protocol: 'rigid_base' }),
-    imageUrl: z.string().url('La URL de la imagen debe ser válida').optional(),
+    imageUrl: z.union([z.string().url(), z.literal(''), z.undefined()]).optional(),
 });
 
 // V6.0: Renovation selection IDs schema (catalogue item IDs, not descriptions)
