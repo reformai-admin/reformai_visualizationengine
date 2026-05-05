@@ -444,8 +444,7 @@ function RenovationDebugPanel({ debug }) {
 export default function App() {
   // form state
   const [roomType, setRoomType]           = useState('Living Room');
-  const [presetName, setPresetName]       = useState('Scandinavian');
-  const [presetUrl, setPresetUrl]         = useState('');
+  const [presetName, setPresetName]       = useState('Modern');
   const [textPrompt, setTextPrompt]       = useState('');
   const [isRefinement, setIsRefinement]   = useState(false);
 
@@ -580,7 +579,7 @@ export default function App() {
       const fd = new FormData();
       fd.append('roomImage', roomImg.file);
       fd.append('roomType', roomType);
-      fd.append('stylePreset', JSON.stringify({ name: presetName, imageUrl: presetUrl || 'https://placeholder.invalid/style' }));
+      fd.append('stylePreset', JSON.stringify({ name: presetName, imageUrl: '' }));
       fd.append('styleInfluence', '0');
       fd.append('isRefinement', String(isRefinement));
       // Removed hardcoded phaseAnchoring - let the backend decide based on query mode
@@ -597,7 +596,7 @@ export default function App() {
 
     setLastReq({
       roomType, textPrompt,
-      stylePreset: { name: presetName, imageUrl: presetUrl },
+      stylePreset: { name: presetName, imageUrl: '' },
       styleInfluence: 0, isRefinement,
       roomImage: roomImg.file.name,
       moodBoardCount: moodFiles.length,
@@ -723,7 +722,7 @@ export default function App() {
             <div style={{ marginBottom: 10 }}>
               <Label required>Preset Name</Label>
               <input value={presetName} onChange={e => setPresetName(e.target.value)}
-                list="presets" placeholder="e.g. Scandinavian" style={inputStyle} {...focus} />
+                list="presets" placeholder="e.g. Modern" style={inputStyle} {...focus} />
               <datalist id="presets">
                 {PRESET_SUGGESTIONS.map(p => <option key={p} value={p} />)}
               </datalist>
@@ -737,16 +736,6 @@ export default function App() {
                   </button>
                 ))}
               </div>
-            </div>
-            <div style={{ marginBottom: 10 }}>
-              <Label>Preset Image URL</Label>
-              <input value={presetUrl} onChange={e => setPresetUrl(e.target.value)}
-                placeholder="https://... (optional — sent as stylePreset.imageUrl)" style={inputStyle} {...focus} />
-              {!presetUrl && (
-                <div style={{ marginTop: 4, fontSize: 10, color: '#9e6a03', background: '#272115', padding: '3px 7px', borderRadius: 4 }}>
-                  imageUrl is currently unused by the backend — this tests that dead code path
-                </div>
-              )}
             </div>
           </Section>
 

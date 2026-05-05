@@ -1,6 +1,6 @@
 # ReformAI Visualization Engine — Lessons Learned
 **Last Updated:** 2026-05-04
-**Sessions Covered:** Phase Anchoring → Style Registry → A/B Sandbox → Prompt Optimization → Template Engine (v3.0) → V4.0–V5.2.1 → V6.0 Renovation Anchors
+**Sessions Covered:** Phase Anchoring → Style Registry → A/B Sandbox → Prompt Optimization → Template Engine (v3.0) → V4.0–V5.2.1 → V6.0 Renovation Anchors → Netlify + Cloud Run Deployment
 
 ---
 
@@ -24,6 +24,14 @@
 ```
 
 The terminal room image re-anchor is load-bearing — do not remove it.
+
+---
+
+### ✅ Image Role Labels Are Required for Multi-Image Requests
+**What failed:** Sending multiple images without labels caused the model to infer roles positionally. Role inference is inconsistent, especially in production environments.
+**What works:** Every image in a request is preceded by an explicit role label text part (`[BASE ROOM IMAGE]`, `[MOODBOARD REFERENCE N]`, `[INJECTED ITEM N]`, `[PREVIOUS RESULT]`, `[BASE ROOM IMAGE — RE-ANCHOR]`).
+
+**Rule:** Never rely on image position for role declaration. Label every image explicitly. This is especially important when binary data may be reconstructed through proxy layers.
 
 ---
 
@@ -91,10 +99,12 @@ Style as a centralized `StyleObject` with `model_inputs` (what Gemini sees) and 
 }
 ```
 
+**Rule:** The style registry (`data/styles.ts`) is the single source of truth. The default preset in the UI must match a name in this registry. Any unknown style name falls back to name-only (no model_inputs enrichment), which will break prompt construction.
+
 ---
 
 ### ✅ Template-Driven Architecture Eliminates Prompt Duplication
-The "hybrid state" problem: v2.x built the style part by constructing strings in code, which duplicated style data (already in styleObject) into the rendered prompt. This created two sources of truth and made the prompt structure opaque.
+The "hybrid state" problem: v2.x built the style part by constructing strings in code, which duplicated style data (already in styleObject) into the rendered prompt.
 
 **v3.0 solution:** A static template with `{{PLACEHOLDERS}}` — the only data in the rendered prompt is what the injection layer injects. The template is a contract; the styleObject/registries are the data sources.
 
@@ -108,21 +118,10 @@ The "hybrid state" problem: v2.x built the style part by constructing strings in
 
 Silent fallbacks produce malformed prompts that appear to work but generate wrong output. A hard failure surfaces the bug at the system boundary, not at image review time.
 
-**Rule:** Injection layers should fail loudly at the injection step. Never silently produce a partial prompt.
-
 ---
 
 ### ✅ Conditional Blocks Require Explicit Whitespace Contracts
-Two blocks in the v3.0 template are conditional: `{{HIGH_DENSITY_GROUP_BLOCK}}` and `{{STYLE_DONTS_BLOCK}}`. When empty, a naive `replace('{{X}}', '')` leaves orphaned blank lines that corrupt spacing.
-
-The fix: different replacement patterns for populated vs empty:
-```typescript
-// Populated: inject content + trailing \n
-rendered = rendered.replace('{{HIGH_DENSITY_GROUP_BLOCK}}', content + '\n');
-
-// Empty: remove placeholder AND its trailing \n
-rendered = rendered.replace('{{HIGH_DENSITY_GROUP_BLOCK}}\n', '');
-```
+Two blocks in the v3.0 template are conditional: `{{HIGH_DENSITY_GROUP_BLOCK}}` and `{{STYLE_DONTS_BLOCK}}`. When empty, a naive `replace('{{X}}', '')` leaves orphaned blank lines.
 
 **Rule:** For each conditional block, define and document the exact whitespace behavior for both the populated and empty cases before writing the injection layer.
 
@@ -137,13 +136,7 @@ The three protocols represent real, distinct behaviors:
 ---
 
 ### ✅ Post-Injection Validation Is Non-Negotiable
-After all placeholder replacements, scan the rendered string for any remaining `{{...}}` tokens:
-
-```typescript
-const UNRESOLVED_PLACEHOLDER_RE = /\{\{[A-Z_]+\}\}/g;
-```
-
-Any match means a placeholder was added to the template but not handled by the injection layer. This catches template/code drift immediately.
+After all placeholder replacements, scan the rendered string for any remaining `{{...}}` tokens. Any match means a placeholder was added to the template but not handled by the injection layer.
 
 ---
 
@@ -155,10 +148,7 @@ Any match means a placeholder was added to the template but not handled by the i
 ---
 
 ### ✅ Registries Are the Right Pattern for Variable Content
-Room-type fields and density blocks are now in standalone registry files (`roomTypes.ts`, `densityBlocks.ts`) with typed entries, normalization helpers, and null-returning lookup functions. This means:
-- Adding a new room type or density tier is a one-file change
-- The injection layer never hardcodes content
-- Failed lookups are detectable and can throw before any prompt is rendered
+Room-type fields and density blocks are now in standalone registry files with typed entries, normalization helpers, and null-returning lookup functions. Adding a new room type or density tier is a one-file change.
 
 ---
 
@@ -172,95 +162,123 @@ When you need a "before" snapshot, use git. When git isn't available, clone the 
 ### ⚠️ Multipart Form-Data Fields Are Unreliable for Routing
 Using `pipelineMode` as a multipart form field caused repeated routing failures.
 
-**Rule:** Use URL query parameters for routing signals (`?mode=balanced_v3_0`).
-
----
-
-### ✅ No Git in the Workspace = High Risk
-This project has no git repository initialized in `reform-ai-vis-sandbox`. Initialize before any large refactor:
-```bash
-cd reform-ai-vis-sandbox
-git init && git add . && git commit -m "checkpoint"
-```
+**Rule:** Use URL query parameters for routing signals (`?mode=balanced_v5`).
 
 ---
 
 ### ✅ Validate the Spec Before Writing Code
-The v3.0 implementation was preceded by:
-1. A prompt audit (lossless cleanup)
-2. A second-pass redundancy audit
-3. A wording optimization pass
-4. An architecture evaluation (6-question critique)
-5. A migration plan validation
-6. A complete formal specification
-
-Writing code against a validated spec produced zero rework. Every file was correct on first write.
-
-**Rule:** For a system with multiple interacting layers (template + registry + injection + service + dispatcher), write the full spec first. The implementation is the easy part.
+The v3.0 implementation was preceded by: a prompt audit, redundancy audit, wording optimization, architecture evaluation, migration plan validation, and a complete formal specification. Writing code against a validated spec produced zero rework.
 
 ---
 
-### ✅ Density Block Regression Testing Is Pending
-The `BALANCED` (medium) and `LAYERED` (high) density blocks were ported from v2.3 with wording optimizations but have not been regression-tested against v3.0 baseline images. They are marked TODO in `densityBlocks.ts`.
+## 4. Deployment Lessons (Netlify + Cloud Run)
 
-**Do not declare v3.0 production-ready until these pass behavioral regression against v2.2 for the same density tier.**
+### ✅ Netlify Function Proxies Must Forward the Full Query String
+**What failed:** The initial `api.mjs` reconstructed the target URL using only `url.pathname`, stripping `?mode=...` and any other query parameters.
+
+**Result:** Every production request hit Cloud Run without a `mode` param. The backend defaulted to `improved_current` regardless of what the user selected in the UI. Responses came back as `NO_IMAGE` because the pipeline routing was wrong.
+
+**Fix:**
+```javascript
+const url = new URL(event.rawUrl);
+const targetUrl = `${CLOUD_RUN_URL}${url.pathname}${url.search}`; // include search (query string)
+```
+
+**Rule:** When building a proxy function, always reconstruct the full URL including query string. Test with a pipeline that requires a non-default mode and verify the mode appears in Cloud Run logs.
 
 ---
 
-## 4. V6.0 Lessons — Renovation Material Anchors
+### ✅ Binary Multipart Bodies Require Careful Proxy Handling
+Netlify Functions receive POST request bodies as base64-encoded strings when the body contains binary data (`event.isBase64Encoded = true`). If `isBase64Encoded` is `false`, the body arrives as a string. Using `Buffer.from(body)` (UTF-8 default) on binary data silently corrupts image bytes — invalid UTF-8 sequences are replaced, changing the actual byte values.
+
+**Fix:**
+```javascript
+body = event.isBase64Encoded
+  ? Buffer.from(event.body, 'base64')
+  : Buffer.from(event.body, 'binary'); // latin1 = lossless byte-for-byte
+```
+
+**Symptom:** `NO_IMAGE` finish reason from Gemini with very short elapsed time (1–3s). This indicates Gemini received the request but immediately rejected it — usually because the image bytes were corrupted and undecodable.
+
+**Rule:** For any binary body in a Netlify Function proxy, always use `'binary'` (latin1) as the fallback encoding, never `'utf-8'`. Add explicit `content-length` after decoding so the target server's multipart parser gets the correct byte count.
+
+---
+
+### ✅ The Health Endpoint Is a Critical Diagnostic Tool
+When debugging a proxy, test `/health` first. If the health ping returns "backend ok", you have confirmed:
+- The Netlify function is executing
+- OIDC token generation is working
+- The Cloud Run service is running and reachable
+- The proxy can complete a full round-trip
+
+If health passes but generation fails, the issue is isolated to the POST body handling (binary, multipart, headers) — not auth or connectivity.
+
+---
+
+### ✅ Elapsed Time Is a Diagnostic Signal
+`NO_IMAGE` with ~1–3s elapsed → Gemini received the request but rejected it immediately. Usually corrupted image data or wrong prompt structure.
+`NO_IMAGE` with ~10–40s elapsed → Gemini processed but returned no image. Usually a safety filter or prompt configuration issue.
+
+Real image generation takes 10–40s. Anything shorter than 5s is an immediate rejection.
+
+---
+
+### ✅ Cloud Run Requires `K_SERVICE` Check for `.env` Loading
+Cloud Run sets the `K_SERVICE` environment variable. The backend uses this to skip `loadEnvFile()` (which would fail because there's no `.env` file in the container). All secrets must be injected as Cloud Run environment variables, not baked into the container.
+
+```typescript
+if (!process.env.K_SERVICE) {
+  try { loadEnvFile(); } catch { /* expected in some local setups */ }
+}
+```
+
+**Rule:** Never rely on a `.env` file in a deployed container. Always set secrets via the platform's environment variable configuration (Cloud Run console, Netlify dashboard).
+
+---
+
+### ✅ Netlify Redirects Must Cover All Backend Routes
+The initial `netlify.toml` was missing a redirect for `/api/catalogue`. Any route not covered by a redirect returns a 404 from Netlify's CDN — the function is never invoked.
+
+**Rule:** For every backend endpoint (`/generate-visualization`, `/health`, `/api/catalogue`, etc.), there must be a corresponding `[[redirects]]` block in `netlify.toml`.
+
+---
+
+## 5. V6.0 Lessons — Renovation Material Anchors
 
 ### ✅ Tier Numbering: Insert Between, Don't Renumber
-When adding a new constraint tier between existing tiers, use a sub-designation ("Tier 2B") rather than renumbering. Renumbering breaks all existing documentation and any prompt text that references tier numbers by name. "2B" communicates placement and priority unambiguously without invalidating anything upstream.
+Use a sub-designation ("Tier 2B") rather than renumbering. Renumbering breaks all existing documentation and any prompt text that references tier numbers by name.
 
 ---
 
 ### ✅ Prompt-Only Semantic Anchoring Requires Surface-Specific Boundary Language
 A general "use this material" instruction bleeds across surfaces. Reliable anchoring requires three explicit sub-instructions per surface:
-- **APPLY TO:** Exactly which surface planes are in scope (e.g. "horizontal floor plane only")
-- **BOUNDARY:** Where to stop (e.g. "stop at the base of walls, do not climb vertical surfaces")
-- **NON-NEGOTIABLE:** A hard override statement that preempts style (e.g. "Do not apply any other flooring material regardless of style preset")
-
-Without all three, partial compliance and surface bleed are predictable failure modes.
+- **APPLY TO:** Exactly which surface planes are in scope
+- **BOUNDARY:** Where to stop
+- **NON-NEGOTIABLE:** A hard override statement that preempts style
 
 ---
 
 ### ✅ VISIBILITY GATE Prevents Hallucinated Surfaces
-When a surface anchored by a catalogue item may not be visible in a given room image (e.g. countertops in a living room shot), the model will hallucinate the surface if the anchor block is unconditional. The fix: add an explicit gate before the per-anchor instruction: *"If this surface type is not visible in the room image, skip this anchor entirely. Do not hallucinate the surface."* This is non-negotiable for countertops and cabinets.
+When a surface may not be visible in a given room image, the model will hallucinate it if the anchor block is unconditional. Gate every anchor with: *"If this surface type is not visible in the room image, skip this anchor entirely. Do not hallucinate the surface."*
 
 ---
 
 ### ✅ Translation Layer Is the Only Point of Trust for Prompt Strings
-The client sends catalogue item IDs, never prompt strings. The translation layer (`catalogue.utils.ts`) is the sole point that resolves IDs to `promptDescription` strings. The service never receives raw descriptions from the client — only IDs it validates against the tenant's scoped catalogue. This prevents prompt injection and ensures the model only sees curated, validated language.
+The client sends catalogue item IDs, never prompt strings. The translation layer is the sole point that resolves IDs to `promptDescription` strings. This prevents prompt injection.
 
 **Rule:** Anything that reaches a model prompt must pass through a validation + resolution layer. Never allow client-supplied strings to reach the prompt directly.
 
 ---
 
 ### ✅ Async-First Translation Layer Enables Drop-In DB Replacement
-The `resolveRenovationSelections()` function is `async` even for the in-memory POC. This means the calling service code (`geminiService.ts`) uses `await` at the resolution step. When a real database replaces the in-memory registry, the service call site is unchanged — only the implementation inside the translation layer changes.
-
-**Rule:** If a function touches data that will eventually live in a database, make it async from day one, even if the current implementation is synchronous.
+Make data-fetching functions `async` from day one, even for in-memory POC implementations. When a real database replaces the in-memory registry, only the implementation changes — all call sites are unchanged.
 
 ---
 
 ### ✅ Gate Feature Data on Pipeline Mode, Not Just on Data Presence
-V6.0 renovation data (selections in state) can persist in the sandbox UI when the user switches back to V5.1. If renovation data were sent based only on whether selections exist — not on whether V6.0 is the active pipeline — V5.1 requests would unexpectedly include renovation fields.
-
-**Rule:** Feature data must be gated on the active pipeline/mode, not just on state presence. The V6.0 sandbox gates `hasRenovationSelections` on `comparisonTarget === 'balanced_v6'`.
+Feature data must be gated on the active pipeline/mode, not just on state presence. Renovation data persisting in state could accidentally be sent on non-V6 requests if not explicitly gated.
 
 ---
 
 ### ✅ Default Parameters Preserve Backward Compatibility at Call Sites
-`buildConstraintHierarchyBlock(injectedItemCount, hasRenovationAnchors = false)` — adding the second parameter with a default means every existing caller continues to work with zero changes. The new behavior only activates when explicitly opted in.
-
-**Rule:** Extend function signatures with default parameters rather than adding new functions or requiring callers to update. Backward compatibility is free when defaults are the prior behavior.
-
----
-
-### ✅ Tier 2B Overrides Tier 4 (Style) on Anchored Surfaces Only
-Renovation anchors do not suppress style globally — they override style only on the specific anchored surface. This is the correct scope: a flooring anchor overrides what the floor looks like, but the style preset still controls wall color, furniture selection, lighting, etc. The "on anchored surfaces only" qualifier is load-bearing in the Tier 4 reference text.
-
----
-
-### ✅ Pipeline Separation in the Sandbox UI Is Worth the Extra Option
-Showing the catalogue panel on every pipeline mode would mislead testing — renovation data being sent without the backend expecting it could corrupt non-V6 results. Gating the entire catalogue section on the `balanced_v6` selection makes it impossible to accidentally pollute a V5.1 test. The cost is one extra dropdown option; the benefit is zero cross-contamination risk during validation.
+Extend function signatures with default parameters rather than adding new functions or requiring callers to update. The prior behavior becomes the default.
