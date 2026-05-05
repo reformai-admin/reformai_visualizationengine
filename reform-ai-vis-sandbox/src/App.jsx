@@ -641,7 +641,7 @@ export default function App() {
       setRawError(err);
       setStatus('error');
     }
-  }, [roomImg, roomType, presetName, presetUrl, isRefinement, textPrompt, moodFiles, furnitureImg, prevImg, compareMode, comparisonTarget, contractorId, renovationSelections]);
+  }, [roomImg, roomType, presetName, isRefinement, textPrompt, moodFiles, furnitureImg, prevImg, compareMode, comparisonTarget, contractorId, renovationSelections]);
 
   const inputStyle = {
     width: '100%', padding: '7px 10px', background: '#0d1117',
