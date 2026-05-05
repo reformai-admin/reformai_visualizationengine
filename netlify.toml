@@ -2,7 +2,7 @@
   directory = "netlify/functions"
   node_bundler = "esbuild"
 
-[functions."api"]
+[functions.api]
   timeout = 26
 
 [build]
@@ -20,6 +20,12 @@
 
 [[redirects]]
   from = "/health"
+  to = "/.netlify/functions/api"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/catalogue"
   to = "/.netlify/functions/api"
   status = 200
   force = true

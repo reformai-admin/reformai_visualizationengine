@@ -35,21 +35,35 @@ async function getOIDCToken(key, audience) {
 
 export const handler = async (event) => {
   try {
-    const originalPath = new URL(event.rawUrl).pathname;
-    const targetUrl = `${CLOUD_RUN_URL}${originalPath}`;
+    const url = new URL(event.rawUrl);
+    const targetUrl = `${CLOUD_RUN_URL}${url.pathname}${url.search}`;
+
+    console.log('[proxy] method:', event.httpMethod, '| path+query:', url.pathname + url.search);
+    console.log('[proxy] isBase64Encoded:', event.isBase64Encoded, '| body size:', event.body?.length ?? 0);
 
     const key = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY);
     const token = await getOIDCToken(key, CLOUD_RUN_URL);
 
-    const forwardHeaders = { authorization: `Bearer ${token}` };
-    for (const h of ['content-type', 'x-contractor-id']) {
-      const val = event.headers[h] || event.headers[h.toLowerCase()];
-      if (val) forwardHeaders[h] = val;
+    // Forward all headers but override/add auth and host
+    const forwardHeaders = {};
+    for (const [key, value] of Object.entries(event.headers)) {
+      if (!['host', 'connection', 'content-length'].includes(key.toLowerCase())) {
+        forwardHeaders[key.toLowerCase()] = value;
+      }
     }
+    forwardHeaders['authorization'] = `Bearer ${token}`;
 
-    const body = event.body
-      ? (event.isBase64Encoded ? Buffer.from(event.body, 'base64') : event.body)
-      : undefined;
+    // Always decode body as binary — Netlify should base64-encode all POST bodies.
+    // If isBase64Encoded is somehow false for multipart, Buffer.from(string) with
+    // binary content would silently corrupt image bytes. Prefer the safe path.
+    let body;
+    if (event.body) {
+      body = event.isBase64Encoded
+        ? Buffer.from(event.body, 'base64')
+        : Buffer.from(event.body, 'binary'); // 'binary' = latin1, preserves raw bytes
+      forwardHeaders['content-length'] = String(body.length);
+      console.log('[proxy] decoded body bytes:', body.length);
+    }
 
     const response = await fetch(targetUrl, {
       method: event.httpMethod,

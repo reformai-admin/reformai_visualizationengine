@@ -3,6 +3,7 @@ import { GoogleGenAI, Modality } from "@google/genai";
 import type { MultipartFile } from '@fastify/multipart';
 import { GenerateVisualizationParams } from '../../types.js';
 import { buildVisualizationPrompt, buildInfluencePrompt, buildFurniturePrompt } from '../../prompts/improved/visualization.prompt.js';
+import { IMAGE_ROLES } from '../../prompts/imageRoles.js';
 
 if (!process.env.K_SERVICE) {
 	try {
@@ -66,6 +67,7 @@ export const generateVisualization = async (params: GenerateVisualizationParams)
 	});
 
 	let parts: Array<{ inlineData: { data: string; mimeType: string } } | { text: string }> = [
+		{ text: IMAGE_ROLES.BASE_ROOM() },
 		bufferToGenerativePart(roomImage),
 	];
 
@@ -78,19 +80,25 @@ export const generateVisualization = async (params: GenerateVisualizationParams)
 	}
 
 	// Mood board images
-	parts.push(...moodBoardImages.map(bufferToGenerativePart));
+	moodBoardImages.forEach((img, i) => {
+		parts.push({ text: IMAGE_ROLES.MOODBOARD_V5(i + 1) });
+		parts.push(bufferToGenerativePart(img));
+	});
 
 	// Furniture reference image
 	if (furnitureImage) {
+		parts.push({ text: IMAGE_ROLES.INJECTED_ITEM(1) });
 		parts.push(bufferToGenerativePart(furnitureImage));
 	}
 
 	// Refinement context
 	if (isRefinement && previousResultImage) {
+		parts.push({ text: IMAGE_ROLES.PREVIOUS_RESULT() });
 		parts.push(bufferToGenerativePart(previousResultImage));
 	}
 
 	// Final structural anchor
+	parts.push({ text: IMAGE_ROLES.BASE_ROOM_REANCHOR() });
 	parts.push(bufferToGenerativePart(roomImage));
 
 	const response = await ai.models.generateContent({
