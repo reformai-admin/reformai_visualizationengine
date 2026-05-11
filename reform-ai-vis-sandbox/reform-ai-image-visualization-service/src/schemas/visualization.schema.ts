@@ -41,7 +41,7 @@ export const generateVisualizationSchema = z.object({
     geometryPreservation: z.boolean().optional().default(false),
     phaseAnchoring: z.boolean().optional().default(false),
     phaseAnchoringV2: z.boolean().optional().default(false),
-    pipelineMode: z.enum(['baseline_original', 'balanced_v1', 'balanced_v2', 'balanced_v2_1', 'balanced_v2_2', 'balanced_v3_0', 'balanced_v4_0', 'balanced_v4_1', 'balanced_v5', 'improved_current']).optional().default('improved_current'),
+    pipelineMode: z.enum(['baseline_original', 'balanced_v1', 'balanced_v2', 'balanced_v2_1', 'balanced_v2_2', 'balanced_v3_0', 'balanced_v4_0', 'balanced_v4_1', 'balanced_v5', 'balanced_v6', 'balanced_v7', 'improved_current']).optional().default('balanced_v7'),
     stylePreset: stylePresetSchema,
     // V6.0: catalogue selection IDs — resolved server-side via translation layer
     renovationSelectionIds: renovationSelectionIdsSchema,
