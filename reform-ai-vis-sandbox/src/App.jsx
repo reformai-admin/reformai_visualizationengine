@@ -474,7 +474,7 @@ export default function App() {
 
   // comparison state
   const [compareMode, setCompareMode] = useState(false);
-  const [comparisonTarget, setComparisonTarget] = useState('balanced_v5');
+  const [comparisonTarget, setComparisonTarget] = useState('balanced_v7');
   const [baselineResult, setBaselineResult] = useState(null);
   const [improvedResult, setImprovedResult] = useState(null);
   const [baselineDebug, setBaselineDebug] = useState(null);
@@ -491,6 +491,7 @@ export default function App() {
     'balanced_v4_1':    'Balanced V4.1',
     'balanced_v5':      'Balanced V5.1 (Lean — Moodboard)',
     'balanced_v6':      'Balanced V6.0 (Service Provider Catalogue)',
+    'balanced_v7':      'Balanced V7 (AGT Confidence-Gated)',
   };
 
   const handleMoodChange = (files) => {
@@ -549,7 +550,7 @@ export default function App() {
 
   const callPipeline = async (fd, mode, extraHeaders = {}) => {
     const t0 = Date.now();
-    const effectiveMode = mode === 'balanced_v6' ? 'balanced_v5' : mode;
+    const effectiveMode = mode;
     const url = `${ENDPOINT}?mode=${effectiveMode}`;
     const res = await fetch(url, { method: 'POST', body: fd, headers: extraHeaders });
     const elapsed = ((Date.now() - t0) / 1000).toFixed(2) + 's';
@@ -563,7 +564,7 @@ export default function App() {
     if (!roomImg.file) return;
 
     // V6.0: build active renovation selection IDs — only active when V6 pipeline is selected
-    const isV6Mode = comparisonTarget === 'balanced_v6';
+    const isV6Mode = comparisonTarget === 'balanced_v6' || comparisonTarget === 'balanced_v7';
     const activeRenovationSelections = isV6Mode
       ? Object.fromEntries(
           CATEGORY_ORDER.filter(cat => renovationSelections[cat])
@@ -684,6 +685,7 @@ export default function App() {
                <option value="balanced_v4_1">Balanced V4.1</option>
                <option value="balanced_v5">Balanced V5.1 (Lean — Moodboard)</option>
                <option value="balanced_v6">Balanced V6.0 (Service Provider Catalogue)</option>
+               <option value="balanced_v7">Balanced V7 (AGT Confidence-Gated)</option>
                <option value="improved_current">Improved Current</option>
              </select>
           </div>
@@ -779,7 +781,7 @@ export default function App() {
               rows={3} style={{ ...inputStyle, resize: 'vertical', fontFamily: 'inherit' }} {...focus} />
           </Section>
 
-          {comparisonTarget === 'balanced_v6' && <Section title="Service Provider Catalogue (V6.0)">
+          {(comparisonTarget === 'balanced_v6' || comparisonTarget === 'balanced_v7') && <Section title="Service Provider Catalogue (V6.0 / V7)">
             <CataloguePanel
               contractorId={contractorId}
               setContractorId={setContractorId}
