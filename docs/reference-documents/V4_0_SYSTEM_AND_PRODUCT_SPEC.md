@@ -1,3 +1,6 @@
+
+> **Documentation Status Note (2026-05-11):** This reference document is historical design context. For implemented architecture, governance, and active workflows, see docs/PLATFORM_STATUS.md, ARCHITECTURE.md, and 	ests/regression/README.md.
+
 # ReformAI Visualization Engine — V4.0 System & Product Specification
 
 **Document version:** 1.1  
@@ -1273,6 +1276,23 @@ The tier hierarchy, tier count, and all other tiers are unchanged from V4.0.
 
 ---
 
+### V7.0 — Architectural Ground Truth (AGT) Pipeline (Specced, Not Yet Implemented)
+
+**Spec:** `docs/reference-documents/V7_IMPLEMENTATION_SPEC_REV1.md`  
+**Approved:** 2026-05-05
+
+**Problem V7 solves:** V6.0 and all prior versions enforce architectural constraints declaratively — the model is instructed to preserve architecture and then asked to self-audit. This fails when generative style pressure conflicts with the instruction. V7 introduces a lightweight pre-extraction pass (AGT) that converts the most failure-prone architectural facts into named, numerical values injected as evidence into the generation prompt. The model cannot contradict a stated fact as readily as it can deprioritize an instruction.
+
+**Architecture change:** Two model calls instead of one.
+- Call 1: fast vision-capable text model — extracts `window_count`, `door_count`, `has_ceiling_fixture`, `has_built_in_niches`, `camera_perspective` from the source image (~300ms, negligible cost)
+- Call 2: `gemini-2.5-flash-image` — unchanged; AGT facts injected as confidence-gated constraint blocks
+
+**Key design principle (Rev 1 vs. Draft):** AGT is *evidence*, not *truth*. Field-level confidence tiers gate enforcement strength. High-confidence fields become hard constraints (`EXACTLY N`). Medium-confidence fields become soft guidance. Low/uncertain fields are suppressed; V6.0 prose constraint serves as fallback. A wrong confident extraction is strictly worse than no extraction — the confidence gate prevents wrong facts from becoming authorized constraints.
+
+**Expected impact:** ~65–75% elimination of hard architectural failures (invented/removed openings, hallucinated fixtures, niche replacement, anchor material bleed) relative to V6.0 baseline.
+
+---
+
 ### Section 15 Roadmap Items — Current Status
 
 | Item | Status |
@@ -1283,8 +1303,10 @@ The tier hierarchy, tier count, and all other tiers are unchanged from V4.0.
 | Provider set coherence / `groupId` (v5.0) | Deferred |
 | Remove `furnitureImage` field (v5.0) | Deferred |
 | Pricing tier alignment | Deferred |
+| V7 AGT implementation | **Approved — not yet started** |
+| V7.1 relational capture (window spacing, symmetry) | Deferred to V7.1 |
 
-All deferred items from the V4.0 roadmap remain valid future work. They were deprioritized in favor of the moodboard reliability track (V5.0 → V5.2.1).
+All deferred items from the V4.0 roadmap remain valid future work. They were deprioritized in favor of the moodboard reliability track (V5.0 → V5.2.1) and the V6.0 catalogue POC.
 
 ---
 
@@ -1346,9 +1368,10 @@ When `renovationSelectionIds` is absent or `contractorId` is missing:
 
 ### Validation Plan (T1–T10)
 
-See `reform-ai-vis-sandbox/reform-ai-image-visualization-service/docs/CURRENT_STATE.md` for the full test matrix.
+See `apps/vis-service/docs/CURRENT_STATE.md` for the full test matrix.
 
 Target compliance rates: flooring ≥85%, walls ≥85%, countertops ≥75%, cabinets ≥75%.
 
 Scaling trigger: if countertop or cabinet compliance falls below 75%, activate `CatalogueItem.imageUrl` to provide material reference images (already in the type schema, currently unused).
+
 

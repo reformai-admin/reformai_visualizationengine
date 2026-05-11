@@ -3,12 +3,14 @@
   "version": "1.0.0",
   "private": true,
   "workspaces": [
-    "reform-ai-vis-sandbox",
-    "reform-ai-vis-sandbox/reform-ai-image-visualization-service"
+    "apps/web-sandbox",
+    "apps/vis-service"
   ],
   "scripts": {
-    "build": "npm run build --workspace=reform-ai-vis-sandbox",
-    "dev": "concurrently \"npm run dev --workspace=back-reformai\" \"npm run dev --workspace=reform-ai-vis-sandbox\""
+    "build": "npm run build --workspace=apps/web-sandbox",
+    "dev": "concurrently \"npm run dev --workspace=back-reformai\" \"npm run dev --workspace=apps/web-sandbox\"",
+    "regression:preflight": "node tests/regression/preflight.mjs",
+    "regression:preflight:full": "node tests/regression/preflight.mjs --config tests/regression/config.full_matrix.yaml --strict"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"

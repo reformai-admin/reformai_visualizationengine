@@ -1,0 +1,26 @@
+{
+  "default_api_base": "http://localhost:8080",
+  "default_health_path": "/health",
+  "comparison_assumptions": {
+    "baseline_anchor": "baseline_original",
+    "furniture_control_benchmarks": ["balanced_v4_0", "balanced_v4_1"],
+    "moodboard_benchmark": "balanced_v5",
+    "compatibility_alias": "balanced_v6",
+    "canonical_active_candidate": "balanced_v7"
+  },
+  "semantic_roles": {
+    "baseline_original": "anchor",
+    "balanced_v4_0": "furniture_control_benchmark",
+    "balanced_v4_1": "furniture_control_benchmark",
+    "balanced_v5": "moodboard_benchmark",
+    "balanced_v6": "compatibility_alias",
+    "balanced_v7": "canonical_active_candidate"
+  },
+  "required_mode_matrix": [
+    { "group": "historical_baseline_anchor", "modes": ["baseline_original"] },
+    { "group": "furniture_control_benchmark", "modes": ["balanced_v4_0", "balanced_v4_1"] },
+    { "group": "moodboard_benchmark", "modes": ["balanced_v5"] },
+    { "group": "compatibility_alias", "modes": ["balanced_v6"] },
+    { "group": "canonical_active_candidate", "modes": ["balanced_v7"] }
+  ]
+}

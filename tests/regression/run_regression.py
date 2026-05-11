@@ -30,19 +30,24 @@ from pathlib import Path
 import requests
 import yaml
 from dotenv import load_dotenv
+from runtime_config import (
+    BENCHMARK_MODE_MATRIX,
+    COMPARISON_ASSUMPTIONS,
+    SEMANTIC_ROLES,
+    ROOT,
+    TESTS_DIR,
+    resolve_api_base,
+    resolve_backend_cmd,
+    resolve_health_url,
+    resolve_service_dir,
+)
 
 # ── paths ─────────────────────────────────────────────────────────────────────
 
-TESTS_DIR   = Path(__file__).parent
-ROOT        = TESTS_DIR.parent.parent
 FIXTURES    = ROOT / "fixtures"
 OUTPUTS     = ROOT / "runs"
 CONFIG_FILE = TESTS_DIR / "config.yaml"
-SERVICE_DIR = (
-    ROOT
-    / "reform-ai-vis-sandbox"
-    / "reform-ai-image-visualization-service"
-)
+SERVICE_DIR = resolve_service_dir()
 
 # Load environment variables from project root
 load_dotenv(ROOT / ".env", override=True)
@@ -57,7 +62,7 @@ def load_config():
 
 def backend_alive(base):
     try:
-        return requests.get(f"{base}/health", timeout=2).status_code == 200
+        return requests.get(resolve_health_url(base), timeout=2).status_code == 200
     except Exception:
         return False
 
@@ -66,12 +71,13 @@ def start_backend(base):
         print("Backend already running.")
         return None
     print("Starting backend...")
+    cmd = resolve_backend_cmd()
     proc = subprocess.Popen(
-        ["npm", "run", "dev"],
+        cmd,
         cwd=SERVICE_DIR,
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
-        shell=True,
+        shell=False,
     )
     for _ in range(30):
         time.sleep(2)
@@ -107,7 +113,7 @@ def call_pipeline(base, fixture_path, room_type, style, pipeline_mode, style_inf
 # ── generation runner ─────────────────────────────────────────────────────────
 
 def run_tests(cfg):
-    base      = cfg["api_base"]
+    base      = resolve_api_base(cfg.get("api_base"))
     rooms     = cfg["rooms"]
     styles    = cfg["styles"]
     pipes     = cfg["pipelines"]
@@ -1747,6 +1753,18 @@ def verify_and_summarize_config(cfg):
     print(f"\n  Pipelines ({len(pipes)}):")
     for p in pipes:
         print(f"    · {p['label']:20s}  mode={p['mode']}")
+    print("\n  Comparison assumptions:")
+    print(f"    · baseline anchor: {COMPARISON_ASSUMPTIONS['baseline_anchor']}")
+    print(
+        "    · furniture/control benchmarks: "
+        + ", ".join(COMPARISON_ASSUMPTIONS["furniture_control_benchmarks"])
+    )
+    print(f"    · moodboard benchmark: {COMPARISON_ASSUMPTIONS['moodboard_benchmark']}")
+    print(f"    · compatibility alias: {COMPARISON_ASSUMPTIONS['compatibility_alias']}")
+    print(
+        "    · canonical active candidate: "
+        + COMPARISON_ASSUMPTIONS["canonical_active_candidate"]
+    )
 
     print(f"\n  Style influence: {cfg.get('style_influence', 50)}")
 
@@ -1763,6 +1781,23 @@ def verify_and_summarize_config(cfg):
 
     if "japandi" not in style_ids:
         warnings.append("Japandi not found in styles — expected as the LOW bucket replacement.")
+
+    configured_modes = {p["mode"] for p in pipes}
+    required_modes = {mode for modes in BENCHMARK_MODE_MATRIX.values() for mode in modes}
+    missing_modes = sorted(required_modes - configured_modes)
+    if missing_modes:
+        warnings.append(
+            "Configured pipeline list is missing benchmark/comparison modes: "
+            + ", ".join(missing_modes)
+        )
+
+    for p in pipes:
+        expected_role = SEMANTIC_ROLES.get(p["mode"])
+        actual_role = p.get("role")
+        if expected_role and actual_role != expected_role:
+            warnings.append(
+                f"Pipeline semantic role mismatch for {p['mode']}: expected {expected_role}, got {actual_role or '(missing)'}"
+            )
 
     if len(rooms) == 0:
         errors.append("No rooms configured.")

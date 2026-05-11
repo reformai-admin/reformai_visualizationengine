@@ -1,0 +1,15 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "dist-test",
+    "rootDir": "src",
+    "noEmit": false
+  },
+  "include": [
+    "src/contracts/runContracts.ts",
+    "src/services/geminiService.test.ts",
+    "src/services/agt/classifyAGTConfidence.test.ts",
+    "src/services/shared/canonicalRequestComposer.test.ts",
+    "src/prompts/balanced_v7/visualization.constants.test.ts"
+  ]
+}

@@ -1,3 +1,6 @@
+
+> **Documentation Status Note (2026-05-11):** This reference document is historical design context. For implemented architecture, governance, and active workflows, see docs/PLATFORM_STATUS.md, ARCHITECTURE.md, and 	ests/regression/README.md.
+
 # ReformAI Visualization — Phase 1 Execution Playbook
 
 > **Status: ✅ COMPLETE**  
@@ -5,7 +8,7 @@
 > This document is preserved as a historical execution plan. For current system state, see:  
 > - `CURRENT_STATE.md` (root) — pipeline versions and test infrastructure  
 > - `docs/reference-documents/V4_0_SYSTEM_AND_PRODUCT_SPEC.md` — canonical architecture spec  
-> - `reform-ai-vis-sandbox/reform-ai-image-visualization-service/docs/CURRENT_STATE.md` — active pipeline tracker
+> - `apps/vis-service/docs/CURRENT_STATE.md` — active pipeline tracker
 
 ---
 
@@ -202,3 +205,4 @@ New:
 ## 11. Strategic Note
 
 Phase 1 stabilizes the system. The long-term advantage comes from the control layer, not the model.
+
