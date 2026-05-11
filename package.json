@@ -9,8 +9,8 @@
   "scripts": {
     "build": "npm run build --workspace=apps/web-sandbox",
     "dev": "concurrently \"npm run dev --workspace=back-reformai\" \"npm run dev --workspace=apps/web-sandbox\"",
-    "regression:preflight": "node tests/regression/preflight.mjs",
-    "regression:preflight:full": "node tests/regression/preflight.mjs --config tests/regression/config.full_matrix.yaml --strict"
+    "regression:preflight": "node tests/regression/scripts/preflight.mjs",
+    "regression:preflight:full": "node tests/regression/scripts/preflight.mjs --config tests/regression/profiles/config.full_matrix.yaml --strict"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"

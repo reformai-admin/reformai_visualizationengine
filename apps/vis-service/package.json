@@ -9,7 +9,7 @@
     "start": "node dist/index.js",
     "test": "tsx --test src/**/*.test.ts",
     "build:contracts": "tsc -p tsconfig.contract-tests.json",
-    "test:contracts": "npm run build:contracts && node dist-test/contracts/runContracts.js"
+    "test:contracts": "npm run build:contracts && node dist-test/tests/contracts/runContracts.js"
   },
   "keywords": [],
   "author": "",

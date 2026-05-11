@@ -6,7 +6,7 @@
     "noEmit": false
   },
   "include": [
-    "src/contracts/runContracts.ts",
+    "src/tests/contracts/runContracts.ts",
     "src/services/geminiService.test.ts",
     "src/services/agt/classifyAGTConfidence.test.ts",
     "src/services/shared/canonicalRequestComposer.test.ts",

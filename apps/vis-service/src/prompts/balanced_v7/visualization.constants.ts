@@ -15,12 +15,12 @@
 // ============================================================
 
 import type { ClassifiedAGT } from '../../types.js';
-import { buildCanonicalConstraintHierarchy } from '../shared/canonicalPromptPrimitives.js';
+import { buildCanonicalConstraintHierarchy } from '../shared/primitives/canonicalPromptPrimitives.js';
 import type {
     AGTConstraintBlockBuilder,
     AGTEchoBlockBuilder,
     ConflictClausesBlockBuilder,
-} from '../shared/contracts.js';
+} from '../shared/contracts/contracts.js';
 
 export const TEMPLATE_VERSION = '7.0.0';
 export const PIPELINE_MODE    = 'balanced_v7';
@@ -38,7 +38,7 @@ export {
     V5_MOODBOARD_INFLUENCE_STATEMENT,
     INFLUENCE_PRESET_STYLE_ONLY,
     DEFAULT_USER_REQUEST,
-} from '../shared/canonicalPromptPrimitives.js';
+} from '../shared/primitives/canonicalPromptPrimitives.js';
 
 
 // ── AGT CONSTRAINT BLOCK ──────────────────────────────────────────────────────

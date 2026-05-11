@@ -11,9 +11,9 @@ export {
     buildMoodboardBlock,
     PromptInjectionError,
     sanitizeApertureLook,
-} from '../shared/canonicalPromptPrimitives.js';
+} from '../shared/primitives/canonicalPromptPrimitives.js';
 
 export type {
     CanonicalPromptParams as BalancedV5PromptParams,
     BuiltCanonicalPrompt as BuiltBalancedV5Prompt,
-} from '../shared/canonicalPromptPrimitives.js';
+} from '../shared/primitives/canonicalPromptPrimitives.js';

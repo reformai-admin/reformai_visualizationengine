@@ -6,8 +6,8 @@
   timeout = 26
 
 [build]
-  command = "cd reform-ai-vis-sandbox && npm install && npm run build"
-  publish = "reform-ai-vis-sandbox/dist"
+  command = "cd apps/web-sandbox && npm install && npm run build"
+  publish = "apps/web-sandbox/dist"
 
 [build.environment]
   NODE_VERSION = "20"
