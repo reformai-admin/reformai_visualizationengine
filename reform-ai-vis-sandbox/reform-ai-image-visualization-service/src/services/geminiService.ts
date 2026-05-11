@@ -73,6 +73,16 @@ export const generateVisualization = async (params: GenerateVisualizationParams)
         return balancedV5Service.generateVisualization(params);
     }
 
+    if (pipelineMode === 'balanced_v6') {
+        console.log('[Dispatcher] Routing to BALANCED V6 pipeline (V5 + catalogue anchor integration)');
+        return balancedV5Service.generateVisualization(params);
+    }
+
+    if (pipelineMode === 'balanced_v7') {
+        console.log('[Dispatcher] Routing to BALANCED V7 pipeline (AGT confidence-gated — running V5 on this service)');
+        return balancedV5Service.generateVisualization(params);
+    }
+
     console.log('[Dispatcher] Routing to IMPROVED pipeline');
     return improvedService.generateVisualization(params);
 };
