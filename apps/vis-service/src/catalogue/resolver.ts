@@ -1,13 +1,15 @@
-// ============================================================
-// CATALOGUE UTILS — V6.0 / V7
-// ============================================================
+// Contractor catalogue resolver.
+// Resolves client-supplied catalogue item IDs to prompt descriptions,
+// validating ownership, category, and availability at each step.
+// This is the only code path that converts client-supplied IDs into
+// strings that reach the model prompt — it is the trust boundary.
 
 import type {
     CatalogueItem,
     RenovationCategory,
     RenovationSelectionIds,
     ResolvedRenovationSelections,
-} from '../types.js';
+} from '../types/catalogue.js';
 import { getCatalogueRegistry } from '../data/catalogues.js';
 
 export class CatalogueValidationError extends Error {

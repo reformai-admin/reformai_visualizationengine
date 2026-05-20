@@ -20,7 +20,7 @@ import { classifyAGTConfidence } from '../agt/classifyAGTConfidence.js';
 import {
     resolveRenovationSelections,
     hasActiveSelections,
-} from '../../utils/catalogue.utils.js';
+} from '../../catalogue/resolver.js';
 import {
     GeminiPart,
     buildRequestStructure,

@@ -7,7 +7,7 @@
 // Medium-confidence fields -> ADVISORY OBSERVATIONS
 // All fields suppressed -> fallback message (no hard facts block)
 
-import type { ClassifiedAGT } from '../../types.js';
+import type { ClassifiedAGT } from '../../types/agt.js';
 
 export const AGT_CONSTRAINT_BLOCK_VERSION = 'agt-constraint@1.0';
 

@@ -1,7 +1,7 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
-import { processVisualizationFormData } from '../utils/formdata.utils.js';
+import { processVisualizationFormData } from '../request/assembler.js';
 import { ValidationError } from '../utils/validation.utils.js';
-import { CatalogueValidationError } from '../utils/catalogue.utils.js';
+import { CatalogueValidationError } from '../catalogue/resolver.js';
 import { generateVisualization } from '../services/geminiService.js';
 
 export async function generateVisualizationController(

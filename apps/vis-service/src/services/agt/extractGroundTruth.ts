@@ -14,7 +14,7 @@
 import { loadEnvFile } from 'node:process';
 import { GoogleGenAI } from '@google/genai';
 import type { MultipartFile } from '@fastify/multipart';
-import type { ArchitecturalGroundTruth, ConfidenceLevel, CountFieldInstance } from '../../types.js';
+import type { ArchitecturalGroundTruth, ConfidenceLevel, CountFieldInstance } from '../../types/agt.js';
 
 if (!process.env.K_SERVICE) {
     try { loadEnvFile(); } catch { /* rely on env already set */ }

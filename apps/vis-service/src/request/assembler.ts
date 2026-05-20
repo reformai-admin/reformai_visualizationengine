@@ -1,15 +1,24 @@
+// Request assembler.
+// Takes raw parsed form data and produces validated, typed GenerateVisualizationParams.
+// Responsibilities: image validation, Zod schema validation, style registry lookup,
+// renovation selection parsing, and final params assembly.
+// No multipart parsing logic belongs here.
+
 import type { MultipartFile, Multipart } from '@fastify/multipart';
 import {
-    ValidationError,
     validateImageFile,
     validateImageFiles,
     parseNumber,
     parseBoolean,
     parseJSON,
-} from './validation.utils.js';
+    ValidationError,
+} from '../utils/validation.utils.js';
 import { generateVisualizationSchema } from '../schemas/visualization.schema.js';
-import type { StylePreset, InjectedItem, RenovationSelectionIds } from '../types.js';
+import type { StylePreset, InjectedItem } from '../types/core.js';
+import type { RenovationSelectionIds } from '../types/catalogue.js';
+import type { GenerateVisualizationParams } from '../types/core.js';
 import { STYLE_REGISTRY } from '../data/styles.js';
+import { parseMultipartForm } from './parser.js';
 
 export interface ProcessedVisualizationData {
     roomImage: MultipartFile & { buffer: Buffer };
@@ -24,7 +33,7 @@ export interface ProcessedVisualizationData {
     geometryPreservation: boolean;
     phaseAnchoring: boolean;
     phaseAnchoringV2: boolean;
-    pipelineMode: NonNullable<StylePreset extends never ? never : import('../types.js').GenerateVisualizationParams['pipelineMode']>;
+    pipelineMode: NonNullable<GenerateVisualizationParams['pipelineMode']>;
     previousResultImage?: MultipartFile & { buffer: Buffer };
     contractorId?: string;
     renovationSelectionIds?: RenovationSelectionIds;
@@ -32,41 +41,15 @@ export interface ProcessedVisualizationData {
 
 export const processVisualizationFormData = async (
     parts: AsyncIterableIterator<Multipart>,
-    queryMode?: import('../types.js').GenerateVisualizationParams['pipelineMode'],
+    queryMode?: GenerateVisualizationParams['pipelineMode'],
     contractorId?: string,
 ): Promise<ProcessedVisualizationData> => {
-    const fields: Record<string, string | boolean> = {};
-    const files: Record<string, MultipartFile | MultipartFile[]> = {};
+    const { fields, files } = await parseMultipartForm(parts);
+    const { roomImage, moodBoardImages, furnitureImage, previousResultImage } = files;
 
-    for await (const part of parts) {
-        const fieldName = part.fieldname;
-        if (part.type === 'file') {
-            const buffer = await part.toBuffer();
-            const fileWithBuffer = { ...part, buffer };
-            if (fieldName === 'moodBoardImages') {
-                if (!files[fieldName]) files[fieldName] = [];
-                (files[fieldName] as MultipartFile[]).push(fileWithBuffer as any);
-            } else {
-                files[fieldName] = fileWithBuffer as any;
-            }
-        } else {
-            fields[fieldName] = (part.value === 'true' || part.value === 'false')
-                ? part.value === 'true'
-                : part.value as string;
-        }
-    }
-
-    const roomImage = files['roomImage'] as (MultipartFile & { buffer: Buffer });
-    if (!roomImage) throw new ValidationError('El campo "roomImage" es requerido');
-
-    const moodBoardImages = (files['moodBoardImages'] as (MultipartFile & { buffer: Buffer })[]) || [];
     validateImageFile(roomImage, 'roomImage');
     if (moodBoardImages.length) validateImageFiles(moodBoardImages, 'moodBoardImages', { min: 1, max: 10 });
-
-    const furnitureImage = files['furnitureImage'] as (MultipartFile & { buffer: Buffer }) | undefined;
     if (furnitureImage) validateImageFile(furnitureImage, 'furnitureImage');
-
-    const previousResultImage = files['previousResultImage'] as (MultipartFile & { buffer: Buffer }) | undefined;
     if (previousResultImage) validateImageFile(previousResultImage, 'previousResultImage');
 
     const styleInfluence = parseNumber(fields['styleInfluence']?.toString(), 'styleInfluence');
