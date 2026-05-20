@@ -24,6 +24,7 @@ const API_KEY = process.env.API_KEY;
 if (!API_KEY) throw new Error('API_KEY environment variable is not set.');
 
 const ai = new GoogleGenAI({ apiKey: API_KEY });
+const AGT_EXTRACTION_MODEL = process.env.AGT_EXTRACTION_MODEL || 'gemini-2.5-flash';
 
 export const FALLBACK_AGT: ArchitecturalGroundTruth = {
     window_count:    { value: 0, confidence: 'low', instances: [] },
@@ -131,7 +132,7 @@ export const extractArchitecturalGroundTruth = async (
     const imageData = roomImage.buffer.toString('base64');
 
     const response = await ai.models.generateContent({
-        model: 'gemini-2.0-flash',
+        model: AGT_EXTRACTION_MODEL,
         contents: {
             parts: [
                 { text: EXTRACTION_PROMPT },

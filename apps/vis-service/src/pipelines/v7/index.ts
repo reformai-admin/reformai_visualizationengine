@@ -52,7 +52,13 @@ export const generateVisualization = async (
 
     const hasMoodboards = moodBoardImages.length > 0;
 
-    const rawAGT = await extractArchitecturalGroundTruth(roomImage).catch(() => FALLBACK_AGT);
+    let agtStatus: 'success' | 'fallback' = 'success';
+    let agtFallbackReason: string | null = null;
+    const rawAGT = await extractArchitecturalGroundTruth(roomImage).catch((error: unknown) => {
+        agtStatus = 'fallback';
+        agtFallbackReason = error instanceof Error ? error.message : String(error);
+        return FALLBACK_AGT;
+    });
     const classifiedAGT = classifyAGTConfidence(rawAGT);
     const hasHardAGTFacts = classifiedAGT.hard_fact_fields.length > 0;
 
@@ -131,6 +137,8 @@ export const generateVisualization = async (
         debug: {
             pipelineMode: 'balanced_v7',
             templateVersion: '7.0.0',
+            agtStatus,
+            agtFallbackReason,
             agtExtractionOverall: rawAGT.extraction_confidence_overall,
             agtUncertainFields: rawAGT.uncertain_fields,
             agtConfidenceDistribution: classifiedAGT.confidence_distribution,

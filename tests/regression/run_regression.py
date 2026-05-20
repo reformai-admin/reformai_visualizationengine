@@ -354,9 +354,10 @@ Step 2 — evaluate each rule independently:
 
   new_structural_element_added
     A new permanent structural element was added that did not exist in the source.
-    Applies to: new walls, new doors, new permanent window openings, new load-bearing columns.
+    Applies to: new walls, new doors, new permanent window openings (including when source has no visible windows),
+    new load-bearing columns, and new permanent ceiling geometry members (exposed beams, coffer grids, plank systems, dropped soffits, skylight framing).
     Does NOT apply to: shiplap, brick veneer, wall paneling, decorative panels, shoji screens,
-    surface cladding, material changes, furniture, lighting fixtures, or decorative elements.
+    surface cladding, material changes, furniture, portable decor, or lighting fixtures.
 
   room_type_changed
     The generated output transforms the room into a different functional room type.

@@ -9,7 +9,7 @@
 
 import type { ClassifiedAGT } from '../../types/agt.js';
 
-export const AGT_CONSTRAINT_BLOCK_VERSION = 'agt-constraint@1.0';
+export const AGT_CONSTRAINT_BLOCK_VERSION = 'agt-constraint@1.1';
 
 export const buildAGTConstraintBlock = (agt: ClassifiedAGT): string => {
     const hardLines: string[] = [];
@@ -24,9 +24,14 @@ export const buildAGTConstraintBlock = (agt: ClassifiedAGT): string => {
         hardLines.push(
             `EXACTLY ${count} window${count !== 1 ? 's' : ''} exist in this room.${anchors}`,
         );
+        if (count === 0) {
+            hardLines.push(
+                'No window openings are present. Do not introduce any new window, skylight, glazed opening, or faux exterior aperture.',
+            );
+        }
     } else if (agt.window_count.enforcement === 'advisory') {
         advisoryLines.push(
-            `Window count: approximately ${agt.window_count.displayValue} observed — verify against source image.`,
+            `Window count: approximately ${agt.window_count.displayValue} observed - verify against source image.`,
         );
     }
 
@@ -41,7 +46,7 @@ export const buildAGTConstraintBlock = (agt: ClassifiedAGT): string => {
         );
     } else if (agt.door_count.enforcement === 'advisory') {
         advisoryLines.push(
-            `Door count: approximately ${agt.door_count.displayValue} observed — verify against source image.`,
+            `Door count: approximately ${agt.door_count.displayValue} observed - verify against source image.`,
         );
     }
 
@@ -53,9 +58,12 @@ export const buildAGTConstraintBlock = (agt: ClassifiedAGT): string => {
                 ? 'Ceiling fixture: PRESENT. It must remain visible in the output.'
                 : 'Ceiling fixture: ABSENT. Do not add one regardless of style requirements.',
         );
+        hardLines.push(
+            'Do not introduce new permanent ceiling structure such as beams, coffers, plank systems, dropped soffits, or skylight framing.',
+        );
     } else if (agt.has_ceiling_fixture.enforcement === 'advisory') {
         advisoryLines.push(
-            `Ceiling fixture: ${agt.has_ceiling_fixture.displayValue} (advisory — model judgment governs if ambiguous in source).`,
+            `Ceiling fixture: ${agt.has_ceiling_fixture.displayValue} (advisory - model judgment governs if ambiguous in source).`,
         );
     }
 
@@ -64,7 +72,7 @@ export const buildAGTConstraintBlock = (agt: ClassifiedAGT): string => {
         const present = agt.has_built_in_niches.displayValue === 'PRESENT';
         hardLines.push(
             present
-                ? 'Built-in niches: PRESENT. They must remain structurally visible — never conceal, fill, or flush them.'
+                ? 'Built-in niches: PRESENT. They must remain structurally visible - never conceal, fill, or flush them.'
                 : 'Built-in niches: ABSENT. Do not introduce recessed alcoves or built-in shelving.',
         );
     } else if (agt.has_built_in_niches.enforcement === 'advisory') {
@@ -74,12 +82,12 @@ export const buildAGTConstraintBlock = (agt: ClassifiedAGT): string => {
     }
 
     const lines: string[] = [
-        '**ARCHITECTURAL GROUND TRUTH — PRE-SESSION STRUCTURAL ASSESSMENT:**',
+        '**ARCHITECTURAL GROUND TRUTH - PRE-SESSION STRUCTURAL ASSESSMENT:**',
         '',
     ];
 
     if (hardLines.length > 0) {
-        lines.push('HARD FACTS — non-negotiable, extraction-verified before this session:');
+        lines.push('HARD FACTS - non-negotiable, extraction-verified before this session:');
         hardLines.forEach(l => lines.push(`- ${l}`));
         lines.push('');
         lines.push(
@@ -96,14 +104,14 @@ export const buildAGTConstraintBlock = (agt: ClassifiedAGT): string => {
 
     if (advisoryLines.length > 0) {
         lines.push('');
-        lines.push('ADVISORY OBSERVATIONS — model judgment may override if source evidence conflicts:');
+        lines.push('ADVISORY OBSERVATIONS - model judgment may override if source evidence conflicts:');
         advisoryLines.forEach(l => lines.push(`- ${l}`));
     }
 
     if (agt.camera_perspective.enforcement === 'advisory') {
         lines.push('');
         lines.push(
-            `Camera perspective: ${agt.camera_perspective.displayValue} (advisory — composition governs).`,
+            `Camera perspective: ${agt.camera_perspective.displayValue} (advisory - composition governs).`,
         );
     }
 
