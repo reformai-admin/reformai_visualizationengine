@@ -6,15 +6,15 @@
 // facts (window count, door count, ceiling fixture, built-in
 // niches, camera perspective) with per-field confidence levels.
 //
-// The caller (balanced_v7 geminiService) catches any error
-// and falls back to FALLBACK_AGT, so this function may throw
-// freely on malformed responses.
+// The caller (pipelines/v7) catches any error and falls back
+// to FALLBACK_AGT, so this function may throw freely on
+// malformed responses.
 // ============================================================
 
 import { loadEnvFile } from 'node:process';
 import { GoogleGenAI } from '@google/genai';
 import type { MultipartFile } from '@fastify/multipart';
-import type { ArchitecturalGroundTruth, ConfidenceLevel, CountFieldInstance } from '../../types/agt.js';
+import type { ArchitecturalGroundTruth, ConfidenceLevel, CountFieldInstance } from '../types/agt.js';
 
 if (!process.env.K_SERVICE) {
     try { loadEnvFile(); } catch { /* rely on env already set */ }
@@ -143,7 +143,6 @@ export const extractArchitecturalGroundTruth = async (
     const text = response.candidates?.[0]?.content?.parts?.[0]?.text;
     if (!text) throw new Error('AGT extraction: no text response from Gemini');
 
-    // Strip markdown code fences if model wraps response despite instructions
     const cleaned = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '').trim();
 
     return parseAndValidate(cleaned);

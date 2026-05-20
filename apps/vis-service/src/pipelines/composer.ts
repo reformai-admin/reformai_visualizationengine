@@ -1,9 +1,9 @@
-import { IMAGE_ROLES } from '../../prompts/imageRoles.js';
-import type { GenerateVisualizationParams } from '../../types.js';
-import type { GeminiPart } from '../../runner/parts.js';
-import { bufferToGenerativePart } from '../../runner/parts.js';
-import { CANONICAL_BLOCK_SEQUENCE } from '../../prompts/shared/sequence.js';
-import type { AGTInsertionContract } from '../../prompts/shared/contracts.js';
+import { IMAGE_ROLES } from '../prompts/imageRoles.js';
+import type { GenerateVisualizationParams } from '../types.js';
+import type { GeminiPart } from '../runner/parts.js';
+import { bufferToGenerativePart } from '../runner/parts.js';
+import { CANONICAL_BLOCK_SEQUENCE } from '../prompts/shared/sequence.js';
+import type { AGTInsertionContract } from '../prompts/shared/contracts.js';
 
 interface CommonBlocks {
     structuralPart: string;

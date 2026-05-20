@@ -1,21 +1,16 @@
 import { GenerateVisualizationParams } from '../types.js';
-import * as baselineService from './baseline/geminiService.js';
-import * as improvedService from './improved/geminiService.js';
-import * as balancedService from './balanced/geminiService.js';
-import * as balancedV2Service from './balanced_v2/geminiService.js';
-import * as balancedV2_1Service from './balanced_v2_1/geminiService.js';
-import * as balancedV2_2Service from './balanced_v2_2/geminiService.js';
-import * as balancedV3_0Service from './balanced_v3_0/geminiService.js';
-import * as balancedV4_0Service from './balanced_v4_0/geminiService.js';
-import * as balancedV4_1Service from './balanced_v4_1/geminiService.js';
-import * as balancedV5Service from './balanced_v5/geminiService.js';
-import * as balancedV7Service from './balanced_v7/geminiService.js';
-import { resolveDispatchModes, resolveHandlerMode, resolvePipelineMode, type PipelineMode } from './pipelineRouting.js';
-
-/**
- * Main Dispatcher Service
- * Routes requests to the correct pipeline based on pipelineMode.
- */
+import * as baselineService from '../services/baseline/geminiService.js';
+import * as improvedService from '../services/improved/geminiService.js';
+import * as balancedService from '../services/balanced/geminiService.js';
+import * as balancedV2Service from '../services/balanced_v2/geminiService.js';
+import * as balancedV2_1Service from '../services/balanced_v2_1/geminiService.js';
+import * as balancedV2_2Service from '../services/balanced_v2_2/geminiService.js';
+import * as balancedV3_0Service from '../services/balanced_v3_0/geminiService.js';
+import * as balancedV4_0Service from '../services/balanced_v4_0/geminiService.js';
+import * as balancedV4_1Service from '../services/balanced_v4_1/geminiService.js';
+import * as balancedV5Service from './v5/index.js';
+import * as balancedV7Service from './v7/index.js';
+import { resolveDispatchModes, resolveHandlerMode, resolvePipelineMode, type PipelineMode } from './routing.js';
 
 type PipelineHandler = (params: GenerateVisualizationParams) => Promise<{ image: string; debug: any }>;
 

@@ -6,7 +6,7 @@ import type {
     ClassifiedPerspectiveField,
     ConfidenceLevel,
     FieldEnforcement,
-} from '../../types/agt.js';
+} from '../types/agt.js';
 
 const classifyCountField = (
     field: ArchitecturalGroundTruth['window_count'],

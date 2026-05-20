@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { resolveHandlerMode, resolvePipelineMode } from './pipelineRouting.js';
+import { resolveHandlerMode, resolvePipelineMode } from './routing.js';
 
 test('defaults to balanced_v7 when pipeline mode is omitted', () => {
     assert.equal(resolvePipelineMode(undefined), 'balanced_v7');

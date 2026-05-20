@@ -15,8 +15,8 @@ import {
 import {
     extractArchitecturalGroundTruth,
     FALLBACK_AGT,
-} from '../agt/extractGroundTruth.js';
-import { classifyAGTConfidence } from '../agt/classifyAGTConfidence.js';
+} from '../../agt/extract.js';
+import { classifyAGTConfidence } from '../../agt/classify.js';
 import {
     resolveRenovationSelections,
     hasActiveSelections,
@@ -26,7 +26,7 @@ import {
     buildRequestStructure,
     normalizeInjectedItems,
 } from '../../runner/parts.js';
-import { composeCanonicalGenerationParts } from '../shared/canonicalRequestComposer.js';
+import { composeCanonicalGenerationParts } from '../composer.js';
 import { callGemini } from '../../runner/gemini.js';
 
 export const generateVisualization = async (

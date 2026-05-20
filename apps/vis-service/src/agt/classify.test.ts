@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { classifyAGTConfidence } from './classifyAGTConfidence.js';
-import type { ArchitecturalGroundTruth } from '../../types.js';
+import { classifyAGTConfidence } from './classify.js';
+import type { ArchitecturalGroundTruth } from '../types.js';
 
 const baseAGT: ArchitecturalGroundTruth = {
     window_count: { value: 2, confidence: 'high', instances: [] },

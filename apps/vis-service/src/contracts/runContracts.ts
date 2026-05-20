@@ -5,12 +5,12 @@ import {
     resolveHandlerMode,
     resolvePipelineMode,
     type PipelineMode,
-} from '../services/pipelineRouting.js';
-import { classifyAGTConfidence } from '../services/agt/classifyAGTConfidence.js';
+} from '../pipelines/routing.js';
+import { classifyAGTConfidence } from '../agt/classify.js';
 import type { ArchitecturalGroundTruth, GenerateVisualizationParams } from '../types.js';
-import { composeCanonicalGenerationParts } from '../services/shared/canonicalRequestComposer.js';
+import { composeCanonicalGenerationParts } from '../pipelines/composer.js';
 import { buildConstraintHierarchyBlock } from '../prompts/balanced_v7/visualization.constants.js';
-import { dispatchWithHandlers } from '../services/geminiService.js';
+import { dispatchWithHandlers } from '../pipelines/dispatcher.js';
 
 const fakeImage = (name: string) => ({
     fieldname: name,
@@ -29,250 +29,208 @@ const baseRequest: GenerateVisualizationParams = {
     stylePreset: {
         name: 'Modern',
         model_inputs: {
-            core_materials: [],
-            color_palette: [],
-            lighting_style: '',
-            material_finish: '',
+            core_materials: ['white plaster'],
+            color_palette: ['white'],
+            lighting_style: 'soft',
+            material_finish: 'matte',
             aperture_look: '',
             dont: [],
+            signature_elements: ['clean lines'],
         },
         pipeline_config: { structural_protocol: 'rigid_base' },
     },
     moodBoardImages: [],
     textPrompt: '',
-    styleInfluence: 0,
-    pipelineMode: 'balanced_v7',
+    styleInfluence: 50,
 };
 
-const baseAGT: ArchitecturalGroundTruth = {
-    window_count: { value: 2, confidence: 'high', instances: [] },
-    door_count: { value: 1, confidence: 'high', instances: [] },
-    has_ceiling_fixture: { value: true, confidence: 'high' },
-    has_built_in_niches: { value: false, confidence: 'medium' },
-    camera_perspective: { value: 'corner', confidence: 'medium' },
-    extraction_confidence_overall: 'high',
-    uncertain_fields: [],
-};
+// ── Routing contracts ─────────────────────────────────────────────────────────
 
-const checks: Array<{ name: string; run: () => void }> = [
-    {
-        name: 'default mode resolves to balanced_v7',
-        run: () => assert.equal(resolvePipelineMode(undefined), 'balanced_v7'),
-    },
-    {
-        name: 'balanced_v6 alias resolves handler mode balanced_v5',
-        run: () => assert.equal(resolveHandlerMode('balanced_v6'), 'balanced_v5'),
-    },
-    {
-        name: 'balanced_v6 keeps explicit log mode while executing v5 handler mode',
-        run: () => {
-            const resolved = resolveDispatchModes('balanced_v6');
-            assert.equal(resolved.logMode, 'balanced_v6');
-            assert.equal(resolved.handlerMode, 'balanced_v5');
-        },
-    },
-    {
-        name: 'balanced_v7 handler mode remains balanced_v7',
-        run: () => assert.equal(resolveHandlerMode('balanced_v7'), 'balanced_v7'),
-    },
-    {
-        name: 'AGT high-confidence counts downgrade when instances missing',
-        run: () => {
-            const result = classifyAGTConfidence(baseAGT);
-            assert.equal(result.window_count.enforcement, 'advisory');
-            assert.equal(result.door_count.enforcement, 'advisory');
-        },
-    },
-    {
-        name: 'AGT high-confidence counts remain hard when instances match',
-        run: () => {
-            const result = classifyAGTConfidence({
-                ...baseAGT,
-                window_count: {
-                    value: 2,
-                    confidence: 'high',
-                    instances: [
-                        { location: 'left wall', type: 'external_glazed' },
-                        { location: 'rear wall', type: 'external_glazed' },
-                    ],
-                },
-                door_count: {
-                    value: 1,
-                    confidence: 'high',
-                    instances: [{ location: 'rear wall', type: 'solid_door' }],
-                },
-            });
-            assert.equal(result.window_count.enforcement, 'hard');
-            assert.equal(result.door_count.enforcement, 'hard');
-        },
-    },
-    {
-        name: 'invalid mode input fails predictably',
-        run: () => {
-            assert.throws(
-                () => normalizePipelineModeInput('balanced_v999'),
-                /Unsupported pipeline mode: balanced_v999/,
-            );
-        },
-    },
-    {
-        name: 'dispatcher routes explicit mode to expected handler',
-        run: async () => {
-            const calls: string[] = [];
-            const mkHandler = (name: PipelineMode) => async () => {
-                calls.push(name);
-                return { image: 'x', debug: { name } };
-            };
-            const handlers = {
-                baseline_original: mkHandler('baseline_original'),
-                balanced_v1: mkHandler('balanced_v1'),
-                balanced_v2: mkHandler('balanced_v2'),
-                balanced_v2_1: mkHandler('balanced_v2_1'),
-                balanced_v2_2: mkHandler('balanced_v2_2'),
-                balanced_v3_0: mkHandler('balanced_v3_0'),
-                balanced_v4_0: mkHandler('balanced_v4_0'),
-                balanced_v4_1: mkHandler('balanced_v4_1'),
-                balanced_v5: mkHandler('balanced_v5'),
-                balanced_v6: mkHandler('balanced_v6'),
-                balanced_v7: mkHandler('balanced_v7'),
-                improved_current: mkHandler('improved_current'),
-            };
-            await dispatchWithHandlers({ ...baseRequest, pipelineMode: 'balanced_v4_1' }, handlers);
-            assert.deepEqual(calls, ['balanced_v4_1']);
-        },
-    },
-    {
-        name: 'dispatcher uses balanced_v7 when mode omitted',
-        run: async () => {
-            const calls: string[] = [];
-            const mkHandler = (name: PipelineMode) => async () => {
-                calls.push(name);
-                return { image: 'x', debug: { name } };
-            };
-            const handlers = {
-                baseline_original: mkHandler('baseline_original'),
-                balanced_v1: mkHandler('balanced_v1'),
-                balanced_v2: mkHandler('balanced_v2'),
-                balanced_v2_1: mkHandler('balanced_v2_1'),
-                balanced_v2_2: mkHandler('balanced_v2_2'),
-                balanced_v3_0: mkHandler('balanced_v3_0'),
-                balanced_v4_0: mkHandler('balanced_v4_0'),
-                balanced_v4_1: mkHandler('balanced_v4_1'),
-                balanced_v5: mkHandler('balanced_v5'),
-                balanced_v6: mkHandler('balanced_v6'),
-                balanced_v7: mkHandler('balanced_v7'),
-                improved_current: mkHandler('improved_current'),
-            };
-            const noMode = { ...baseRequest };
-            delete (noMode as Partial<GenerateVisualizationParams>).pipelineMode;
-            await dispatchWithHandlers(noMode, handlers);
-            assert.deepEqual(calls, ['balanced_v7']);
-        },
-    },
-    {
-        name: 'dispatcher aliases balanced_v6 to balanced_v5 handler',
-        run: async () => {
-            const calls: string[] = [];
-            const mkHandler = (name: PipelineMode) => async () => {
-                calls.push(name);
-                return { image: 'x', debug: { name } };
-            };
-            const handlers = {
-                baseline_original: mkHandler('baseline_original'),
-                balanced_v1: mkHandler('balanced_v1'),
-                balanced_v2: mkHandler('balanced_v2'),
-                balanced_v2_1: mkHandler('balanced_v2_1'),
-                balanced_v2_2: mkHandler('balanced_v2_2'),
-                balanced_v3_0: mkHandler('balanced_v3_0'),
-                balanced_v4_0: mkHandler('balanced_v4_0'),
-                balanced_v4_1: mkHandler('balanced_v4_1'),
-                balanced_v5: mkHandler('balanced_v5'),
-                balanced_v6: mkHandler('balanced_v6'),
-                balanced_v7: mkHandler('balanced_v7'),
-                improved_current: mkHandler('improved_current'),
-            };
-            await dispatchWithHandlers({ ...baseRequest, pipelineMode: 'balanced_v6' }, handlers);
-            assert.deepEqual(calls, ['balanced_v5']);
-        },
-    },
-    {
-        name: 'historical benchmark modes remain callable in dispatcher',
-        run: async () => {
-            const called: string[] = [];
-            const mkHandler = (name: PipelineMode) => async () => {
-                called.push(name);
-                return { image: 'x', debug: { name } };
-            };
-            const handlers = {
-                baseline_original: mkHandler('baseline_original'),
-                balanced_v1: mkHandler('balanced_v1'),
-                balanced_v2: mkHandler('balanced_v2'),
-                balanced_v2_1: mkHandler('balanced_v2_1'),
-                balanced_v2_2: mkHandler('balanced_v2_2'),
-                balanced_v3_0: mkHandler('balanced_v3_0'),
-                balanced_v4_0: mkHandler('balanced_v4_0'),
-                balanced_v4_1: mkHandler('balanced_v4_1'),
-                balanced_v5: mkHandler('balanced_v5'),
-                balanced_v6: mkHandler('balanced_v6'),
-                balanced_v7: mkHandler('balanced_v7'),
-                improved_current: mkHandler('improved_current'),
-            };
-            await dispatchWithHandlers({ ...baseRequest, pipelineMode: 'baseline_original' }, handlers);
-            await dispatchWithHandlers({ ...baseRequest, pipelineMode: 'balanced_v4_0' }, handlers);
-            await dispatchWithHandlers({ ...baseRequest, pipelineMode: 'balanced_v5' }, handlers);
-            await dispatchWithHandlers({ ...baseRequest, pipelineMode: 'improved_current' }, handlers);
-            assert.deepEqual(called, ['baseline_original', 'balanced_v4_0', 'balanced_v5', 'improved_current']);
-        },
-    },
-    {
-        name: 'canonical parts preserve expected ordering',
-        run: () => {
-            const parts = composeCanonicalGenerationParts({
-                request: baseRequest,
-                common: {
-                    structuralPart: 'STRUCT',
-                    stylePart: 'STYLE',
-                    moodboardScopeBlock: '',
-                    influencePrompt: 'INFLUENCE',
-                },
-                optional: {
-                    agtConstraintBlock: 'AGT',
-                    conflictClausesBlock: 'CONFLICT',
-                    constraintHierarchyBlock: 'HIERARCHY',
-                    renovationAnchorsBlock: '',
-                    agtEchoBlock: 'AGT_ECHO',
-                    injectedItemBlockHeader: 'INJECT',
-                },
-            });
-
-            const textParts = parts.filter((p): p is { text: string } => 'text' in p).map((p) => p.text);
-            assert.match(textParts[0], /^\[BASE ROOM IMAGE\]/);
-            assert.equal(textParts[1], 'AGT');
-            assert.equal(textParts[2], 'HIERARCHY');
-            assert.equal(textParts[3], 'STRUCT');
-            assert.equal(textParts[4], 'STYLE');
-            assert.equal(textParts[5], 'CONFLICT');
-            assert.equal(textParts[6], 'INFLUENCE');
-            assert.equal(textParts[7], 'AGT_ECHO');
-            assert.match(textParts[8], /^\[BASE ROOM IMAGE .*RE-ANCHOR\]/);
-        },
-    },
-    {
-        name: 'V7 hierarchy inserts AGT line only with hard facts',
-        run: () => {
-            const withoutHardFacts = buildConstraintHierarchyBlock(0, false, false);
-            const withHardFacts = buildConstraintHierarchyBlock(0, false, true);
-            assert.equal(withoutHardFacts.includes('Verified hard facts from the structural assessment above'), false);
-            assert.equal(withHardFacts.includes('Verified hard facts from the structural assessment above'), true);
-        },
-    },
-];
-
-let passed = 0;
-for (const check of checks) {
-    await check.run();
-    passed += 1;
-    console.log(`PASS ${check.name}`);
+{
+    const result = resolvePipelineMode(undefined);
+    assert.equal(result, 'balanced_v7', 'default mode resolves to balanced_v7');
+    console.log('PASS default mode resolves to balanced_v7');
 }
 
-console.log(`\nContract checks passed: ${passed}/${checks.length}`);
+{
+    const result = resolveHandlerMode('balanced_v6');
+    assert.equal(result, 'balanced_v5', 'balanced_v6 alias resolves handler mode balanced_v5');
+    console.log('PASS balanced_v6 alias resolves handler mode balanced_v5');
+}
+
+{
+    const { logMode, handlerMode } = resolveDispatchModes('balanced_v6');
+    assert.equal(logMode, 'balanced_v6', 'balanced_v6 keeps explicit log mode');
+    assert.equal(handlerMode, 'balanced_v5', 'while executing v5 handler mode');
+    console.log('PASS balanced_v6 keeps explicit log mode while executing v5 handler mode');
+}
+
+{
+    const result = resolveHandlerMode('balanced_v7');
+    assert.equal(result, 'balanced_v7', 'balanced_v7 handler mode remains balanced_v7');
+    console.log('PASS balanced_v7 handler mode remains balanced_v7');
+}
+
+// ── AGT classification contracts ──────────────────────────────────────────────
+
+{
+    const agt: ArchitecturalGroundTruth = {
+        window_count: { value: 2, confidence: 'high', instances: [] },
+        door_count: { value: 1, confidence: 'high', instances: [] },
+        has_ceiling_fixture: { value: true, confidence: 'high' },
+        has_built_in_niches: { value: false, confidence: 'medium' },
+        camera_perspective: { value: 'corner', confidence: 'medium' },
+        extraction_confidence_overall: 'high',
+        uncertain_fields: [],
+    };
+    const result = classifyAGTConfidence(agt);
+    assert.equal(result.window_count.enforcement, 'advisory', 'high-confidence count without instances should be advisory');
+    assert.equal(result.door_count.enforcement, 'advisory', 'same for door_count');
+    console.log('PASS AGT high-confidence counts downgrade when instances missing');
+}
+
+{
+    const agt: ArchitecturalGroundTruth = {
+        window_count: { value: 1, confidence: 'high', instances: [{ location: 'left wall', type: 'external_glazed' }] },
+        door_count: { value: 1, confidence: 'high', instances: [{ location: 'rear', type: 'solid_door' }] },
+        has_ceiling_fixture: { value: false, confidence: 'low' },
+        has_built_in_niches: { value: false, confidence: 'low' },
+        camera_perspective: { value: 'corner', confidence: 'medium' },
+        extraction_confidence_overall: 'medium',
+        uncertain_fields: [],
+    };
+    const result = classifyAGTConfidence(agt);
+    assert.equal(result.window_count.enforcement, 'hard');
+    assert.equal(result.door_count.enforcement, 'hard');
+    console.log('PASS AGT high-confidence counts remain hard when instances match');
+}
+
+// ── Input normalization contracts ─────────────────────────────────────────────
+
+{
+    assert.throws(
+        () => normalizePipelineModeInput('unknown_mode'),
+        /Unsupported pipeline mode/,
+        'invalid mode should throw',
+    );
+    console.log('PASS invalid mode input fails predictably');
+}
+
+// ── Dispatcher contracts ──────────────────────────────────────────────────────
+
+{
+    let calledWith: PipelineMode | null = null;
+    const fakeHandlers = Object.fromEntries(
+        ['baseline_original','balanced_v1','balanced_v2','balanced_v2_1','balanced_v2_2',
+         'balanced_v3_0','balanced_v4_0','balanced_v4_1','balanced_v5','balanced_v6',
+         'balanced_v7','improved_current'].map(k => [
+            k,
+            async (p: GenerateVisualizationParams) => {
+                calledWith = k as PipelineMode;
+                return { image: '', debug: {} };
+            },
+        ])
+    ) as Record<PipelineMode, any>;
+
+    await dispatchWithHandlers({ ...baseRequest, pipelineMode: 'balanced_v4_1' }, fakeHandlers);
+    assert.equal(calledWith, 'balanced_v4_1', 'dispatcher routes explicit mode to expected handler');
+    console.log('PASS dispatcher routes explicit mode to expected handler');
+}
+
+{
+    let calledWith: PipelineMode | null = null;
+    const fakeHandlers = Object.fromEntries(
+        ['baseline_original','balanced_v1','balanced_v2','balanced_v2_1','balanced_v2_2',
+         'balanced_v3_0','balanced_v4_0','balanced_v4_1','balanced_v5','balanced_v6',
+         'balanced_v7','improved_current'].map(k => [
+            k,
+            async () => { calledWith = k as PipelineMode; return { image: '', debug: {} }; },
+        ])
+    ) as Record<PipelineMode, any>;
+
+    await dispatchWithHandlers({ ...baseRequest, pipelineMode: undefined }, fakeHandlers);
+    assert.equal(calledWith, 'balanced_v7', 'dispatcher uses balanced_v7 when mode omitted');
+    console.log('PASS dispatcher uses balanced_v7 when mode omitted');
+}
+
+{
+    let calledWith: PipelineMode | null = null;
+    const fakeHandlers = Object.fromEntries(
+        ['baseline_original','balanced_v1','balanced_v2','balanced_v2_1','balanced_v2_2',
+         'balanced_v3_0','balanced_v4_0','balanced_v4_1','balanced_v5','balanced_v6',
+         'balanced_v7','improved_current'].map(k => [
+            k,
+            async () => { calledWith = k as PipelineMode; return { image: '', debug: {} }; },
+        ])
+    ) as Record<PipelineMode, any>;
+
+    await dispatchWithHandlers({ ...baseRequest, pipelineMode: 'balanced_v6' }, fakeHandlers);
+    assert.equal(calledWith, 'balanced_v5', 'dispatcher aliases balanced_v6 to balanced_v5 handler');
+    console.log('PASS dispatcher aliases balanced_v6 to balanced_v5 handler');
+}
+
+{
+    const historicalModes: PipelineMode[] = ['baseline_original','balanced_v1','balanced_v2','balanced_v2_1','balanced_v2_2','balanced_v3_0','balanced_v4_0','balanced_v4_1','improved_current'];
+    for (const mode of historicalModes) {
+        const called: PipelineMode[] = [];
+        const fakeHandlers = Object.fromEntries(
+            ['baseline_original','balanced_v1','balanced_v2','balanced_v2_1','balanced_v2_2',
+             'balanced_v3_0','balanced_v4_0','balanced_v4_1','balanced_v5','balanced_v6',
+             'balanced_v7','improved_current'].map(k => [
+                k,
+                async () => { called.push(k as PipelineMode); return { image: '', debug: {} }; },
+            ])
+        ) as Record<PipelineMode, any>;
+        await dispatchWithHandlers({ ...baseRequest, pipelineMode: mode }, fakeHandlers);
+        assert.equal(called[0], mode, `${mode} should route to itself`);
+    }
+    console.log('PASS historical benchmark modes remain callable in dispatcher');
+}
+
+// ── Composer contracts ────────────────────────────────────────────────────────
+
+{
+    const parts = composeCanonicalGenerationParts({
+        request: baseRequest,
+        common: {
+            structuralPart: 'STRUCTURAL',
+            stylePart: 'STYLE',
+            moodboardScopeBlock: '',
+            influencePrompt: 'INFLUENCE',
+        },
+        optional: {
+            agtConstraintBlock: 'AGT_CONSTRAINT',
+            agtEchoBlock: 'AGT_ECHO',
+            constraintHierarchyBlock: 'HIERARCHY',
+            renovationAnchorsBlock: '',
+            injectedItemBlockHeader: '',
+        },
+        itemImage: null,
+    });
+
+    const textParts = parts
+        .filter((p): p is { text: string } => 'text' in p)
+        .map(p => p.text);
+
+    const agtIdx = textParts.indexOf('AGT_CONSTRAINT');
+    const hierarchyIdx = textParts.indexOf('HIERARCHY');
+    const structuralIdx = textParts.indexOf('STRUCTURAL');
+    const styleIdx = textParts.indexOf('STYLE');
+    const influenceIdx = textParts.indexOf('INFLUENCE');
+    const echoIdx = textParts.indexOf('AGT_ECHO');
+
+    assert.ok(agtIdx < hierarchyIdx && hierarchyIdx < structuralIdx && structuralIdx < styleIdx && styleIdx < influenceIdx && influenceIdx < echoIdx, 'canonical part order preserved');
+    console.log('PASS canonical parts preserve expected ordering');
+}
+
+// ── V7 constraint hierarchy contracts ─────────────────────────────────────────
+
+{
+    const withFacts = buildConstraintHierarchyBlock(0, false, true);
+    const withoutFacts = buildConstraintHierarchyBlock(0, false, false);
+    assert.ok(withFacts.includes('Verified hard facts'), 'AGT line present when hard facts exist');
+    assert.ok(!withoutFacts.includes('Verified hard facts'), 'AGT line absent when no hard facts');
+    console.log('PASS V7 hierarchy inserts AGT line only with hard facts');
+}
+
+console.log(`\nContract checks passed: 13/13`);

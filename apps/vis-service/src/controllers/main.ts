@@ -2,7 +2,7 @@ import { FastifyRequest, FastifyReply } from 'fastify';
 import { processVisualizationFormData } from '../request/assembler.js';
 import { ValidationError } from '../utils/validation.utils.js';
 import { CatalogueValidationError } from '../catalogue/resolver.js';
-import { generateVisualization } from '../services/geminiService.js';
+import { generateVisualization } from '../pipelines/dispatcher.js';
 
 export async function generateVisualizationController(
     request: FastifyRequest,

@@ -18,7 +18,7 @@ import {
     buildRequestStructure,
     normalizeInjectedItems,
 } from '../../runner/parts.js';
-import { composeCanonicalGenerationParts } from '../shared/canonicalRequestComposer.js';
+import { composeCanonicalGenerationParts } from '../composer.js';
 import { callGemini } from '../../runner/gemini.js';
 
 export const generateVisualization = async (
