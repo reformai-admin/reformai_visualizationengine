@@ -21,6 +21,8 @@ node_modules/
 # Build & OS
 dist/
 **/dist/
+!apps/web-sandbox/dist/
+!apps/web-sandbox/dist/**
 build/
 **/build/
 .DS_Store
