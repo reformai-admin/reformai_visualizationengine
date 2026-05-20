@@ -1,5 +1,9 @@
+// Shared request assembly utilities.
+// Image encoding, injected item normalization, and parts-array introspection.
+// Moved from services/shared/pipelineAssembly.ts.
+
 import type { MultipartFile } from '@fastify/multipart';
-import type { GenerateVisualizationParams, InjectedItem } from '../../types.js';
+import type { GenerateVisualizationParams, InjectedItem } from '../types.js';
 
 export type GeminiPart =
     | { inlineData: { data: string; mimeType: string } }

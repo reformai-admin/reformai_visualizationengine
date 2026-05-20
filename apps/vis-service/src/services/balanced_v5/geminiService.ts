@@ -1,5 +1,3 @@
-import { loadEnvFile } from 'node:process';
-import { GoogleGenAI, Modality } from '@google/genai';
 import { GenerateVisualizationParams, ResolvedRenovationSelections } from '../../types.js';
 import {
     buildConstraintHierarchyBlock,
@@ -19,23 +17,9 @@ import {
     GeminiPart,
     buildRequestStructure,
     normalizeInjectedItems,
-} from '../shared/pipelineAssembly.js';
+} from '../../runner/parts.js';
 import { composeCanonicalGenerationParts } from '../shared/canonicalRequestComposer.js';
-
-if (!process.env.K_SERVICE) {
-    try {
-        loadEnvFile();
-    } catch {
-        // .env file not found - rely on environment variables already set
-    }
-}
-
-const API_KEY = process.env.API_KEY;
-if (!API_KEY) {
-    throw new Error('API_KEY environment variable is not set.');
-}
-
-const ai = new GoogleGenAI({ apiKey: API_KEY });
+import { callGemini } from '../../runner/gemini.js';
 
 export const generateVisualization = async (
     params: GenerateVisualizationParams,
@@ -124,50 +108,35 @@ export const generateVisualization = async (
         itemImage: item?.image ?? null,
     });
 
-    const model = 'gemini-2.5-flash-image';
+    const { image } = await callGemini(parts);
 
-    const response = await ai.models.generateContent({
-        model,
-        contents: { parts },
-        config: { responseModalities: [Modality.IMAGE] },
-    });
-
-    const firstPart = response.candidates?.[0]?.content?.parts?.[0];
-
-    if (firstPart?.inlineData?.data) {
-        return {
-            image: firstPart.inlineData.data,
-            debug: {
-                pipelineMode: 'balanced_v5',
-                templateVersion: '6.0.0',
-                hasInjectedItem,
-                injectedItem: item ? { shimmedFromFurnitureImage } : null,
-                moodboardScopeBlockInserted: hasMoodboards,
-                moodboardCount: moodBoardImages.length,
-                stagingDensity,
-                contractorId: contractorId ?? null,
-                renovationSelectionIds: renovationSelectionIds ?? null,
-                resolvedRenovationSelections: resolvedRenovationSelections ?? null,
-                renovationAnchorsInserted: hasRenovationAnchors,
-                renovationAnchorCount: hasRenovationAnchors
-                    ? Object.values(resolvedRenovationSelections!).filter(Boolean).length
-                    : 0,
-                renovationAnchorsBlock: renovationAnchorsBlock || null,
-                requestStructure: buildRequestStructure(parts),
-                structuralPart,
-                stylePart,
-                styleObject: stylePreset,
-                structuralProtocol: stylePreset.pipeline_config?.structural_protocol ?? 'rigid_base',
-                stagingDensityTier,
-                rawApertureLook,
-                safeApertureLook,
-                apertureSanitized,
-            },
-        };
-    }
-
-    const finishReason = response.candidates?.[0]?.finishReason;
-    throw new Error(
-        `No image returned by Gemini.${finishReason ? ` Finish reason: ${finishReason}` : ' Response may have been blocked.'}`,
-    );
+    return {
+        image,
+        debug: {
+            pipelineMode: 'balanced_v5',
+            templateVersion: '6.0.0',
+            hasInjectedItem,
+            injectedItem: item ? { shimmedFromFurnitureImage } : null,
+            moodboardScopeBlockInserted: hasMoodboards,
+            moodboardCount: moodBoardImages.length,
+            stagingDensity,
+            contractorId: contractorId ?? null,
+            renovationSelectionIds: renovationSelectionIds ?? null,
+            resolvedRenovationSelections: resolvedRenovationSelections ?? null,
+            renovationAnchorsInserted: hasRenovationAnchors,
+            renovationAnchorCount: hasRenovationAnchors
+                ? Object.values(resolvedRenovationSelections!).filter(Boolean).length
+                : 0,
+            renovationAnchorsBlock: renovationAnchorsBlock || null,
+            requestStructure: buildRequestStructure(parts),
+            structuralPart,
+            stylePart,
+            styleObject: stylePreset,
+            structuralProtocol: stylePreset.pipeline_config?.structural_protocol ?? 'rigid_base',
+            stagingDensityTier,
+            rawApertureLook,
+            safeApertureLook,
+            apertureSanitized,
+        },
+    };
 };

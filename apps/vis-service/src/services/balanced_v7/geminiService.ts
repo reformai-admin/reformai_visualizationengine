@@ -1,5 +1,3 @@
-import { loadEnvFile } from 'node:process';
-import { GoogleGenAI, Modality } from '@google/genai';
 import { GenerateVisualizationParams, ResolvedRenovationSelections } from '../../types.js';
 import {
     buildAGTConstraintBlock,
@@ -27,23 +25,9 @@ import {
     GeminiPart,
     buildRequestStructure,
     normalizeInjectedItems,
-} from '../shared/pipelineAssembly.js';
+} from '../../runner/parts.js';
 import { composeCanonicalGenerationParts } from '../shared/canonicalRequestComposer.js';
-
-if (!process.env.K_SERVICE) {
-    try {
-        loadEnvFile();
-    } catch {
-        // .env file not found - rely on environment variables already set
-    }
-}
-
-const API_KEY = process.env.API_KEY;
-if (!API_KEY) {
-    throw new Error('API_KEY environment variable is not set.');
-}
-
-const ai = new GoogleGenAI({ apiKey: API_KEY });
+import { callGemini } from '../../runner/gemini.js';
 
 export const generateVisualization = async (
     params: GenerateVisualizationParams,
@@ -140,60 +124,45 @@ export const generateVisualization = async (
         itemImage: item?.image ?? null,
     });
 
-    const model = 'gemini-2.5-flash-image';
+    const { image } = await callGemini(parts);
 
-    const response = await ai.models.generateContent({
-        model,
-        contents: { parts },
-        config: { responseModalities: [Modality.IMAGE] },
-    });
-
-    const firstPart = response.candidates?.[0]?.content?.parts?.[0];
-
-    if (firstPart?.inlineData?.data) {
-        return {
-            image: firstPart.inlineData.data,
-            debug: {
-                pipelineMode: 'balanced_v7',
-                templateVersion: '7.0.0',
-                agtExtractionOverall: rawAGT.extraction_confidence_overall,
-                agtUncertainFields: rawAGT.uncertain_fields,
-                agtConfidenceDistribution: classifiedAGT.confidence_distribution,
-                agtHardFactFields: classifiedAGT.hard_fact_fields,
-                agtAdvisoryFields: classifiedAGT.advisory_fields,
-                agtSuppressedFields: classifiedAGT.suppressed_fields,
-                agtConstraintBlock,
-                agtEchoBlockInserted: !!agtEchoBlock,
-                agtEchoBlock: agtEchoBlock || null,
-                conflictClausesInserted: !!conflictClausesBlock,
-                conflictClausesBlock: conflictClausesBlock || null,
-                hasInjectedItem,
-                injectedItem: item ? { shimmedFromFurnitureImage } : null,
-                moodboardScopeBlockInserted: hasMoodboards,
-                moodboardCount: moodBoardImages.length,
-                stagingDensity,
-                contractorId: contractorId ?? null,
-                renovationSelectionIds: renovationSelectionIds ?? null,
-                resolvedRenovationSelections: resolvedRenovationSelections ?? null,
-                renovationAnchorsInserted: hasRenovationAnchors,
-                renovationAnchorCount: hasRenovationAnchors
-                    ? Object.values(resolvedRenovationSelections!).filter(Boolean).length
-                    : 0,
-                requestStructure: buildRequestStructure(parts),
-                structuralPart,
-                stylePart,
-                styleObject: stylePreset,
-                structuralProtocol: stylePreset.pipeline_config?.structural_protocol ?? 'rigid_base',
-                stagingDensityTier,
-                rawApertureLook,
-                safeApertureLook,
-                apertureSanitized,
-            },
-        };
-    }
-
-    const finishReason = response.candidates?.[0]?.finishReason;
-    throw new Error(
-        `No image returned by Gemini.${finishReason ? ` Finish reason: ${finishReason}` : ' Response may have been blocked.'}`,
-    );
+    return {
+        image,
+        debug: {
+            pipelineMode: 'balanced_v7',
+            templateVersion: '7.0.0',
+            agtExtractionOverall: rawAGT.extraction_confidence_overall,
+            agtUncertainFields: rawAGT.uncertain_fields,
+            agtConfidenceDistribution: classifiedAGT.confidence_distribution,
+            agtHardFactFields: classifiedAGT.hard_fact_fields,
+            agtAdvisoryFields: classifiedAGT.advisory_fields,
+            agtSuppressedFields: classifiedAGT.suppressed_fields,
+            agtConstraintBlock,
+            agtEchoBlockInserted: !!agtEchoBlock,
+            agtEchoBlock: agtEchoBlock || null,
+            conflictClausesInserted: !!conflictClausesBlock,
+            conflictClausesBlock: conflictClausesBlock || null,
+            hasInjectedItem,
+            injectedItem: item ? { shimmedFromFurnitureImage } : null,
+            moodboardScopeBlockInserted: hasMoodboards,
+            moodboardCount: moodBoardImages.length,
+            stagingDensity,
+            contractorId: contractorId ?? null,
+            renovationSelectionIds: renovationSelectionIds ?? null,
+            resolvedRenovationSelections: resolvedRenovationSelections ?? null,
+            renovationAnchorsInserted: hasRenovationAnchors,
+            renovationAnchorCount: hasRenovationAnchors
+                ? Object.values(resolvedRenovationSelections!).filter(Boolean).length
+                : 0,
+            requestStructure: buildRequestStructure(parts),
+            structuralPart,
+            stylePart,
+            styleObject: stylePreset,
+            structuralProtocol: stylePreset.pipeline_config?.structural_protocol ?? 'rigid_base',
+            stagingDensityTier,
+            rawApertureLook,
+            safeApertureLook,
+            apertureSanitized,
+        },
+    };
 };
