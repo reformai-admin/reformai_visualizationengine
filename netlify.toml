@@ -6,7 +6,7 @@
   timeout = 26
 
 [build]
-  command = "echo 'No frontend build step configured; publishing prebuilt app.'"
+  command = "npm --workspace=apps/web-sandbox run build"
   publish = "apps/web-sandbox/dist"
 
 [build.environment]
