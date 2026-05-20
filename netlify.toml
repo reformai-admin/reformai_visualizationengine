@@ -6,8 +6,8 @@
   timeout = 26
 
 [build]
-  command = "cd reform-ai-vis-sandbox && npm install && npm run build"
-  publish = "reform-ai-vis-sandbox/dist"
+  command = "echo 'No frontend build step configured; publishing prebuilt app.'"
+  publish = "apps/web-sandbox/dist"
 
 [build.environment]
   NODE_VERSION = "20"
