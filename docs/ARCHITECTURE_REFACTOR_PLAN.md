@@ -522,7 +522,9 @@ The refactor must not break production. V7 is the active production pipeline and
 
 The approach is build-alongside-then-cut-over, not big-bang rewrite. New structure is created alongside old structure. The active pipeline is migrated. Old structure is deleted only after tests pass.
 
-### Phase 1: Create Block Architecture (No Behavior Change)
+### Phase 1: Create Block Architecture (No Behavior Change) -- COMPLETE 2026-05-20
+
+**Commit:** `refactor(phase-1): extract prompt blocks into prompts/blocks/`
 
 **Scope**: Extract the 11 prompt blocks from `balanced_v5/visualization.constants.ts` into individual files in `prompts/blocks/`. Update V5 and V7 constants files to import from the new block files. Net behavior: identical.
 
@@ -545,7 +547,9 @@ The approach is build-alongside-then-cut-over, not big-bang rewrite. New structu
 
 **Risk**: Low. This is a mechanical extraction with no logic change.
 
-### Phase 2: Create Shared Gemini Runner
+### Phase 2: Create Shared Gemini Runner -- COMPLETE 2026-05-20
+
+**Commit:** `refactor(phase-2): extract shared Gemini runner into runner/`
 
 **Scope**: Extract the `API_KEY`, `new GoogleGenAI()`, `ai.models.generateContent()`, response parsing, and throw-on-no-image pattern into `runner/gemini.ts`. Update V5 and V7 services to call the shared runner.
 
@@ -559,7 +563,9 @@ The approach is build-alongside-then-cut-over, not big-bang rewrite. New structu
 
 **Risk**: Low-medium. The runner wraps a Gemini SDK call, so the integration test is essential to confirm identical behavior.
 
-### Phase 3: Split types.ts and formdata.utils.ts
+### Phase 3: Split types.ts and formdata.utils.ts -- COMPLETE 2026-05-20
+
+**Commit:** `refactor(phase-3): split types, request parsing, and catalogue feature`
 
 **Scope**: Decompose the mixed-concern files. No behavior changes.
 
@@ -573,7 +579,9 @@ The approach is build-alongside-then-cut-over, not big-bang rewrite. New structu
 
 **Risk**: Low. TypeScript compiler will catch all import breakage immediately.
 
-### Phase 4: Migrate Active Pipelines to New Directory Structure
+### Phase 4: Migrate Active Pipelines to New Directory Structure -- COMPLETE 2026-05-20
+
+**Commit:** `refactor(phase-4): migrate active pipelines to pipelines/; move agt module`
 
 **Scope**: Move the two active pipeline directories to the target structure. Move archived pipelines.
 
@@ -592,7 +600,9 @@ The approach is build-alongside-then-cut-over, not big-bang rewrite. New structu
 
 **Risk**: Medium. The dispatcher imports all 12 services, so import paths must be updated carefully. TypeScript compiler catches all path errors, but the Gemini API calls must be validated with actual fixture runs.
 
-### Phase 5: Clean Up Root Archive Directories and Test Harnesses
+### Phase 5: Clean Up Root Archive Directories and Test Harnesses -- COMPLETE 2026-05-20
+
+**Commit:** `refactor(phase-5): clean up archives, test harnesses, and stale root docs`
 
 **Scope**: Audit and dispose of pre-monorepo artifacts and duplicate test harnesses.
 
@@ -605,14 +615,24 @@ The approach is build-alongside-then-cut-over, not big-bang rewrite. New structu
 
 **Risk**: Low. No production code changes.
 
-### Phase 6: Add Block-Level Unit Tests
+### Phase 6: Add Block-Level Unit Tests -- PENDING
 
 **Scope**: Write unit tests for all 11 block builders. Add an integration test for V7 and V5 pipelines.
 
-**Files added**:
-- `prompts/blocks/__tests__/<block-name>.test.ts` for each block (11 files)
-- `pipelines/v7/__tests__/integration.test.ts`
-- `pipelines/v5/__tests__/integration.test.ts`
+**Files to add**:
+- `apps/vis-service/src/prompts/blocks/__tests__/structural.test.ts`
+- `apps/vis-service/src/prompts/blocks/__tests__/style.test.ts`
+- `apps/vis-service/src/prompts/blocks/__tests__/constraint-hierarchy.test.ts`
+- `apps/vis-service/src/prompts/blocks/__tests__/moodboard-scope.test.ts`
+- `apps/vis-service/src/prompts/blocks/__tests__/influence.test.ts`
+- `apps/vis-service/src/prompts/blocks/__tests__/renovation-anchors.test.ts`
+- `apps/vis-service/src/prompts/blocks/__tests__/injected-items.test.ts`
+- `apps/vis-service/src/prompts/blocks/__tests__/agt-constraint.test.ts`
+- `apps/vis-service/src/prompts/blocks/__tests__/agt-echo.test.ts`
+- `apps/vis-service/src/prompts/blocks/__tests__/conflict-clauses.test.ts`
+- `apps/vis-service/src/prompts/blocks/__tests__/density.test.ts`
+
+See `docs/AGENT_HANDOFF.md` for detailed instructions, test patterns, and exact inputs/assertions required.
 
 **Risk**: None. Additive only.
 
