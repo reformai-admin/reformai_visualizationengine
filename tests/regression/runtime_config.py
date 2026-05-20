@@ -7,7 +7,6 @@ ROOT = TESTS_DIR.parent.parent
 
 SERVICE_DIR_CANDIDATES = [
     ROOT / "apps" / "vis-service",
-    ROOT / "reform-ai-vis-sandbox" / "reform-ai-image-visualization-service",
 ]
 
 DEFAULT_API_BASE = "http://localhost:8080"

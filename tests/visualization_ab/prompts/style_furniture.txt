@@ -1,5 +1,0 @@
-Base Room Image: {image_id}
-Style: {style}
-Furniture Reference: {furniture_ref}
-
-Task: Apply the specified style and incorporate elements from the furniture reference while preserving the original room's layout.

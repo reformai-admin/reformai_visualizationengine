@@ -52,7 +52,7 @@ ROOMS_DIR    = FIXTURES_DIR / "rooms"
 MOODS_DIR    = FIXTURES_DIR / "moodboards"
 OUTPUTS_DIR  = TESTS_DIR / "outputs"
 CONFIG_FILE  = TESTS_DIR / "configs" / "moodboard_suite.yaml"
-SERVICE_DIR  = ROOT / "reform-ai-vis-sandbox" / "reform-ai-image-visualization-service"
+SERVICE_DIR  = ROOT / "apps" / "vis-service"
 PROMPT_FILE  = SERVICE_DIR / "src" / "prompts" / "balanced_v5" / "visualization.constants.ts"
 
 load_dotenv(ROOT / ".env", override=True)

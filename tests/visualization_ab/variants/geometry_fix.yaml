@@ -1,6 +1,0 @@
-variant_name: geometry_fix
-description: Fixes for wall-to-floor junctions and perspective alignment.
-prompt_constraints:
-  - "Strict perspective locking"
-  - "Straight vertical lines"
-notes: Focuses on spatial accuracy and structural realism.
