@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import type { ClassifiedAGT } from '../../../types/agt.js';
+import type { ClassifiedAGT } from '../../../shared/types/agt.js';
 import {
     AGT_CONSTRAINT_BLOCK_VERSION,
     buildAGTConstraintBlock,
@@ -56,3 +56,7 @@ test('agt constraint fallback, hard facts, advisory, and version', () => {
 
     assert.match(AGT_CONSTRAINT_BLOCK_VERSION, /^agt-constraint@.+/);
 });
+
+
+
+

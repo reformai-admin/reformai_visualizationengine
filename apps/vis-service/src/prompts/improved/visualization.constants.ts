@@ -242,3 +242,6 @@ export const LIGHTING_GEOMETRY_SAFETY = `
 // --------------------------------------------
 // Used when the user does not write any specific request
 export const DEFAULT_USER_REQUEST = `No specific requests.`;
+
+
+

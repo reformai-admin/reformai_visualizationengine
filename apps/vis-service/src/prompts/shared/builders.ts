@@ -1,4 +1,4 @@
-import type { ResolvedRenovationSelections } from '../../types.js';
+import type { ResolvedRenovationSelections } from '../../shared/types/index.js';
 import type {
     ConstraintHierarchyBuilder,
     MoodboardScopeBuilder,
@@ -23,3 +23,6 @@ export const buildCanonicalMoodboardScope: MoodboardScopeBuilder = (
 export const buildCanonicalRenovationAnchors: RenovationAnchorsBuilder = (
     selections: ResolvedRenovationSelections,
 ) => buildV5RenovationAnchors(selections);
+
+
+

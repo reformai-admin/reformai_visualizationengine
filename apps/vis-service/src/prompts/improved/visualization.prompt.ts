@@ -18,7 +18,7 @@ import {
     GLOBAL_STYLE_CONSTRAINTS,
     LIGHTING_GEOMETRY_SAFETY,
 } from './visualization.constants.js';
-import { StylePreset } from '../../types.js';
+import { StylePreset } from '../../shared/types/index.js';
 
 export interface VisualizationPromptParams {
     isRefinement: boolean;
@@ -163,3 +163,6 @@ export const buildFurniturePrompt = (hasFurnitureImage: boolean, roomType: strin
 
     return INSTRUCTION_INTEGRATE_FURNITURE.replace(/\{\{ROOM_TYPE\}\}/g, roomType);
 };
+
+
+

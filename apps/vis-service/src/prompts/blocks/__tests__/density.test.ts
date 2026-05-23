@@ -21,3 +21,7 @@ test('density registry lookup behavior and version', () => {
     assert.match(DENSITY_BLOCK_REGISTRY.high.block, /Rich/);
     assert.match(DENSITY_BLOCK_VERSION, /^density@.+/);
 });
+
+
+
+

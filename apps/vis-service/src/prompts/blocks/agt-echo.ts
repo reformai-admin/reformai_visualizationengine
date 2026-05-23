@@ -6,7 +6,7 @@
 // Returns empty string when no hard facts exist — caller checks before pushing a parts entry.
 // Purpose: re-states hard fact counts as a final compliance check before generation.
 
-import type { ClassifiedAGT } from '../../types/agt.js';
+import type { ClassifiedAGT } from '../../shared/types/agt.js';
 
 export const AGT_ECHO_BLOCK_VERSION = 'agt-echo@1.0';
 
@@ -37,3 +37,7 @@ export const buildAGTEchoBlock = (agt: ClassifiedAGT): string => {
 
     return lines.join('\n');
 };
+
+
+
+

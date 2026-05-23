@@ -1,5 +1,5 @@
-import type { ResolvedRenovationSelections } from '../../types.js';
-import type { ClassifiedAGT } from '../../types.js';
+import type { ResolvedRenovationSelections } from '../../shared/types/index.js';
+import type { ClassifiedAGT } from '../../shared/types/index.js';
 
 export interface ConstraintHierarchyOptions {
     injectedItemCount: number;
@@ -28,3 +28,6 @@ export interface AGTInsertionContract {
     agtConstraintBlock?: string;
     agtEchoBlock?: string;
 }
+
+
+

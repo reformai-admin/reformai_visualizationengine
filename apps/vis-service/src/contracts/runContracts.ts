@@ -5,12 +5,12 @@ import {
     resolveHandlerMode,
     resolvePipelineMode,
     type PipelineMode,
-} from '../pipelines/routing.js';
-import { classifyAGTConfidence } from '../agt/classify.js';
-import type { ArchitecturalGroundTruth, GenerateVisualizationParams } from '../types.js';
-import { composeCanonicalGenerationParts } from '../pipelines/composer.js';
+} from '../pipelines/core/pipeline-routing.js';
+import { classifyAGTConfidence } from '../guardrails/classify.js';
+import type { ArchitecturalGroundTruth, GenerateVisualizationParams } from '../shared/types/index.js';
+import { composeCanonicalGenerationParts } from '../pipelines/core/pipeline-composer.js';
 import { buildConstraintHierarchyBlock } from '../prompts/balanced_v7/visualization.constants.js';
-import { dispatchWithHandlers } from '../pipelines/dispatcher.js';
+import { dispatchWithHandlers } from '../pipelines/core/pipeline-dispatcher.js';
 
 const fakeImage = (name: string) => ({
     fieldname: name,
@@ -54,15 +54,15 @@ const baseRequest: GenerateVisualizationParams = {
 
 {
     const result = resolveHandlerMode('balanced_v6');
-    assert.equal(result, 'balanced_v5', 'balanced_v6 alias resolves handler mode balanced_v5');
-    console.log('PASS balanced_v6 alias resolves handler mode balanced_v5');
+    assert.equal(result, 'balanced_v6', 'balanced_v6 resolves to explicit balanced_v6 handler');
+    console.log('PASS balanced_v6 resolves to explicit balanced_v6 handler');
 }
 
 {
     const { logMode, handlerMode } = resolveDispatchModes('balanced_v6');
     assert.equal(logMode, 'balanced_v6', 'balanced_v6 keeps explicit log mode');
-    assert.equal(handlerMode, 'balanced_v5', 'while executing v5 handler mode');
-    console.log('PASS balanced_v6 keeps explicit log mode while executing v5 handler mode');
+    assert.equal(handlerMode, 'balanced_v6', 'while executing balanced_v6 handler mode');
+    console.log('PASS balanced_v6 keeps explicit log mode while executing balanced_v6 handler mode');
 }
 
 {
@@ -165,8 +165,8 @@ const baseRequest: GenerateVisualizationParams = {
     ) as Record<PipelineMode, any>;
 
     await dispatchWithHandlers({ ...baseRequest, pipelineMode: 'balanced_v6' }, fakeHandlers);
-    assert.equal(calledWith, 'balanced_v5', 'dispatcher aliases balanced_v6 to balanced_v5 handler');
-    console.log('PASS dispatcher aliases balanced_v6 to balanced_v5 handler');
+    assert.equal(calledWith, 'balanced_v6', 'dispatcher resolves balanced_v6 to balanced_v6 handler');
+    console.log('PASS dispatcher resolves balanced_v6 to balanced_v6 handler');
 }
 
 {
@@ -234,3 +234,6 @@ const baseRequest: GenerateVisualizationParams = {
 }
 
 console.log(`\nContract checks passed: 13/13`);
+
+
+

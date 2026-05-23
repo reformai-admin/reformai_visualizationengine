@@ -169,3 +169,6 @@ export const BALANCED_PROTOCOL_SURFACE_ONLY_TRANSFORM = `
 - Maintain the 3D depth and complexity of the original room structure.
 - Finishes and visual surfaces may be simplified, but do not flatten or erase existing architectural boundaries.
 `;
+
+
+

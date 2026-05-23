@@ -62,3 +62,6 @@ export const buildFurniturePrompt = (hasFurnitureImage: boolean, roomType: strin
 
     return INSTRUCTION_INTEGRATE_FURNITURE.replace(/\{\{ROOM_TYPE\}\}/g, roomType);
 };
+
+
+

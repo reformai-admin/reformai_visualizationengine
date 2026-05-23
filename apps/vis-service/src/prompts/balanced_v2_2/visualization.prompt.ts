@@ -1,4 +1,4 @@
-import { StylePreset } from '../../types.js';
+import { StylePreset } from '../../shared/types/index.js';
 import {
     BALANCED_V2_2_PHASE_1,
     STAGING_DENSITY_LOW,
@@ -238,3 +238,6 @@ export const buildFurniturePrompt = (hasFurnitureImage: boolean, roomType: strin
     if (!hasFurnitureImage) return '';
     return INSTRUCTION_INTEGRATE_FURNITURE.replace(/\{\{ROOM_TYPE\}\}/g, roomType);
 };
+
+
+

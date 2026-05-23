@@ -5,7 +5,7 @@
 // Input: ResolvedRenovationSelections
 // Returns empty string when no selections are active — caller checks before pushing a parts entry.
 
-import { ResolvedRenovationSelections, RenovationCategory } from '../../types/catalogue.js';
+import { ResolvedRenovationSelections, RenovationCategory } from '../../shared/types/catalogue.js';
 
 export const RENOVATION_ANCHORS_BLOCK_VERSION = 'renovation-anchors@1.0';
 
@@ -100,3 +100,7 @@ export const buildRenovationAnchorsBlock = (
 
     return lines.join('\n');
 };
+
+
+
+

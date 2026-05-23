@@ -1,53 +1,40 @@
 # ReformAI Visualization Engine - Development Guide
-**Last Updated:** 2026-05-11
+**Last Updated:** 2026-05-21
 
-This guide tracks the implemented architecture and day-to-day developer workflows.
-
-## Source of Truth Hierarchy
-1. `docs/PLATFORM_STATUS.md` - lifecycle/governance and canonical semantics.
-2. `ARCHITECTURE.md` - current system architecture and consolidation state.
-3. `apps/vis-service/README.md` - backend runtime/testing contracts.
-4. `tests/regression/README.md` - regression profile workflows.
+## Source-of-Truth Order
+1. `docs/PLATFORM_STATUS.md`
+2. `docs/CURRENT_STATE.md`
+3. `apps/vis-service/README.md`
+4. `README.md`
 
 ## Current Architecture Snapshot
-- Canonical active candidate: `balanced_v7`
-- Compatibility alias behavior: `balanced_v6 -> balanced_v5`
-- Historical/frozen benchmarks preserved for comparison (including `baseline_original` anchor).
-- Shared orchestration primitives: `apps/vis-service/src/services/shared/*`
-- Shared prompt contracts/primitives: `apps/vis-service/src/prompts/shared/*`
+- Canonical active pipeline: `balanced_v7`
+- Explicit comparison pipeline: `balanced_v6`
+- Historical benchmark family preserved for comparison
+- Backend source model: `transport/pipelines/prompts/guardrails/models/catalog/shared`
 
-## Developer Workflows
-### Local development
+## Local Workflows
+### Start local dev
 ```bash
 npm run dev
 ```
 
-### Backend build + contract tests
+### Backend
 ```bash
-cd apps/vis-service
-npm run build
-npm run test:contracts
+npm --workspace apps/vis-service run build
+npm --workspace apps/vis-service run test:contracts
 ```
 
-### Regression preflight profiles
+### Frontend
 ```bash
-npm run regression:preflight
-npm run regression:preflight:full
+npm --workspace apps/web-sandbox run build
 ```
 
-- Fast preflight is non-strict and supports canonical baseline-vs-v7 workflow.
-- Full preflight is strict and enforces full benchmark-matrix semantics.
-
-## Regression Profiles
-- Fast canonical profile: `tests/regression/config.yaml`
-- Full product-evolution profile: `tests/regression/config.full_matrix.yaml`
-- Shared assumptions source: `tests/regression/runtime_assumptions.json`
-
-## Compare-Mode Philosophy
-- Benchmark modes are preserved intentionally for product-evolution analysis.
-- "Frozen" means no active feature development unless compatibility requires it.
-- "Historical" does not mean removed or unusable; it means comparison-oriented.
-
-## Notes on Historical Reference Docs
-Files in `docs/reference-documents/` are historical or point-in-time planning artifacts.
-Use them for context, then reconcile against `docs/PLATFORM_STATUS.md` for current truth.
+## Where to Add Code
+- API request/response handling -> `apps/vis-service/src/transport`
+- Pipeline behavior by mode -> `apps/vis-service/src/pipelines/versions`
+- Prompt behavior -> `apps/vis-service/src/prompts/blocks`
+- Structural/AGT safety -> `apps/vis-service/src/guardrails`
+- Gemini/provider behavior -> `apps/vis-service/src/models`
+- Catalogue feature logic -> `apps/vis-service/src/catalog`
+- Shared contracts/registries/validation -> `apps/vis-service/src/shared`

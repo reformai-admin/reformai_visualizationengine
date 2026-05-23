@@ -23,7 +23,7 @@
 // INVARIANT: Hard-fail on missing required fields. No silent empty injection.
 // ============================================================
 
-import { StylePreset } from '../../types.js';
+import { StylePreset } from '../../shared/types/index.js';
 import {
     TEMPLATE_VERSION,
     PIPELINE_MODE,
@@ -36,8 +36,8 @@ import {
     INFLUENCE_PRESET_STYLE_ONLY,
     DEFAULT_USER_REQUEST,
 } from './visualization.constants.js';
-import { getRoomTypeEntry } from '../../data/roomTypes.js';
-import { getDensityBlockEntry } from '../../data/densityBlocks.js';
+import { getRoomTypeEntry } from '../../shared/room-types.registry.js';
+import { getDensityBlockEntry } from '../../shared/density-blocks.registry.js';
 
 // ── Error class ───────────────────────────────────────────────────────────────
 
@@ -269,3 +269,6 @@ export const buildInfluencePrompt = (
     }
     return INFLUENCE_PRESET_STYLE_ONLY;
 };
+
+
+

@@ -11,6 +11,9 @@ export const DENSITY_BLOCK_VERSION = 'density@1.0';
 export {
     getDensityBlockEntry,
     DENSITY_BLOCK_REGISTRY,
-} from '../../data/densityBlocks.js';
+} from '../../shared/density-blocks.registry.js';
 
-export type { DensityBlockEntry } from '../../data/densityBlocks.js';
+export type { DensityBlockEntry } from '../../shared/density-blocks.registry.js';
+
+
+

@@ -15,7 +15,7 @@
 // contains V7-only orchestration logic (AGT awareness).
 // ============================================================
 
-import type { ClassifiedAGT } from '../../types.js';
+import type { ClassifiedAGT } from '../../shared/types/index.js';
 import { buildCanonicalConstraintHierarchy } from '../shared/canonicalPromptPrimitives.js';
 import type {
     AGTConstraintBlockBuilder,
@@ -85,3 +85,6 @@ export const buildConstraintHierarchyBlock = (
     lines.splice(insertionIndex + 1, 0, agtTierLine);
     return lines.join('\n');
 };
+
+
+

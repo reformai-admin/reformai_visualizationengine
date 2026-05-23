@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import type { ClassifiedAGT } from '../../../types/agt.js';
+import type { ClassifiedAGT } from '../../../shared/types/agt.js';
 import { AGT_ECHO_BLOCK_VERSION, buildAGTEchoBlock } from '../agt-echo.js';
 
 const suppressedAGT: ClassifiedAGT = {
@@ -37,3 +37,7 @@ test('agt echo inactive/active behavior and version', () => {
     assert.match(hard, /architectural compliance failure/);
     assert.match(AGT_ECHO_BLOCK_VERSION, /^agt-echo@.+/);
 });
+
+
+
+

@@ -25,3 +25,7 @@ test('moodboard scope handles density tiers and version', () => {
 
     assert.match(MOODBOARD_SCOPE_BLOCK_VERSION, /^moodboard-scope@.+/);
 });
+
+
+
+

@@ -2,8 +2,8 @@ import { loadEnvFile } from 'node:process';
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import multipart from '@fastify/multipart';
-import { generateVisualizationController } from './controllers/main.js';
-import { getCatalogueRegistry } from './data/catalogues.js';
+import { generateVisualizationController } from './transport/controllers/visualization.controller.js';
+import { getCatalogueRegistry } from './catalog/catalogues.registry.js';
 
 if (!process.env.K_SERVICE) {
     loadEnvFile();
@@ -64,3 +64,5 @@ const start = async () => {
 };
 
 start();
+
+

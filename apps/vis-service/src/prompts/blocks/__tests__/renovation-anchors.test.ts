@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import type { ResolvedRenovationSelections } from '../../../types/catalogue.js';
+import type { ResolvedRenovationSelections } from '../../../shared/types/catalogue.js';
 import {
     RENOVATION_ANCHORS_BLOCK_VERSION,
     buildRenovationAnchorsBlock,
@@ -27,3 +27,7 @@ test('renovation anchors inactive and active behavior with version', () => {
     assert.match(two, /Non-negotiable/);
     assert.match(RENOVATION_ANCHORS_BLOCK_VERSION, /^renovation-anchors@.+/);
 });
+
+
+
+

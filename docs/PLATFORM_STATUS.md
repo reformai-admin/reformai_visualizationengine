@@ -1,117 +1,48 @@
 # ReformAI Visualization Engine -- Platform Status (Authoritative)
-**Last Verified:** 2026-05-20
-**Verification Basis:** runtime routing, contract tests, unit tests, and post-refactor structural validation.
+**Last Verified:** 2026-05-21
 
 ## 1. Canonical Runtime
+- Default pipeline mode: `balanced_v7`
+- Canonical orchestration: AGT extraction/classification + generation
+- API entrypoint: `POST /generate-visualization?mode=<pipeline>`
 
-- **Canonical pipeline:** `balanced_v7`
-- **Canonical architecture:** two-call AGT + generation flow
-  - Call 1: AGT extraction + confidence classification (`agt/extract.ts`, `agt/classify.ts`)
-  - Call 2: Gemini image generation with AGT hard/advisory injection (`pipelines/v7/index.ts`)
-- **Canonical entrypoint:** `POST /generate-visualization?mode=balanced_v7`
-- **Default mode behavior:** if mode is omitted, runtime resolves to `balanced_v7`
-
-## 2. Pipeline Lifecycle and Semantics
+## 2. Pipeline Lifecycle
+All paths are relative to `apps/vis-service/src/`.
 
 | Mode | Lifecycle | Handler Location |
 |---|---|---|
-| `baseline_original` | Historical Baseline Anchor | `services/baseline/geminiService.ts` |
-| `balanced_v1` through `balanced_v3_0` | Historical Benchmarks | `services/balanced*/geminiService.ts` |
-| `balanced_v4_0`, `balanced_v4_1` | Frozen Benchmark (furniture/control) | `services/balanced_v4_*/geminiService.ts` |
-| `balanced_v5` | Frozen Benchmark (moodboard) | `pipelines/v5/index.ts` |
-| `balanced_v6` | Compatibility Alias | Routes to `balanced_v5` handler |
-| `balanced_v7` | **Canonical Active Candidate** | `pipelines/v7/index.ts` |
-| `improved_current` | Historical Comparison Path | `services/improved/geminiService.ts` |
+| `baseline_original` | Historical baseline anchor | `pipelines/legacy-services/baseline/geminiService.ts` |
+| `balanced_v1` to `balanced_v4_1` | Historical benchmark family | `pipelines/legacy-services/*` |
+| `balanced_v5` | Frozen benchmark reference | `pipelines/versions/balanced-v5/index.ts` |
+| `balanced_v6` | Explicit comparison pipeline | `pipelines/versions/balanced-v6/index.ts` |
+| `balanced_v7` | Canonical active candidate | `pipelines/versions/balanced-v7/index.ts` |
+| `improved_current` | Historical comparison path | `pipelines/legacy-services/improved/geminiService.ts` |
 
-All paths above are relative to `apps/vis-service/src/`.
+## 3. Routing Semantics
+- Mode resolution lives in `pipelines/core/pipeline-routing.ts`.
+- Omitted mode resolves to `balanced_v7`.
+- `balanced_v6` resolves to its own explicit handler module (no silent V6->V5 handler alias).
 
-## 3. Alias Semantics (Explicit)
-
-- `balanced_v6` keeps its own log mode.
-- `balanced_v6` executes via handler mode `balanced_v5`.
-- This parity is contract-tested in spawn-free contract tests.
-
-## 4. Architectural Constraints
-
-- No new copy-forward pipelines for feature growth.
-- New pipeline work lands in `pipelines/` as a new versioned directory.
-- New prompt block work lands in `prompts/blocks/` as a new block file.
-- Frozen/historical benchmark modes remain callable for regression comparison.
-- Do not modify any file under `services/` (frozen archived implementations).
-
-## 5. Current Architecture Layout
-
+## 4. Current Source Layout
 ```
 apps/vis-service/src/
-├── agt/                    AGT extraction and classification
-├── catalogue/              Contractor catalogue feature (V6+)
-├── contracts/              Spawn-free contract validation tests
-├── controllers/            HTTP handler
-├── data/                   Static product registries (styles, density, rooms, catalogue)
-├── pipelines/
-│   ├── dispatcher.ts       Pipeline map + routing entry point
-│   ├── routing.ts          Mode resolution and alias handling
-│   ├── composer.ts         Canonical Gemini parts assembly
-│   ├── v7/                 ACTIVE: Canonical production pipeline
-│   ├── v5/                 BENCHMARK: Frozen moodboard reference
-│   └── archived/           README explaining frozen pipeline locations
-├── prompts/
-│   ├── blocks/             11 atomic prompt block files
-│   ├── balanced_v5/        Re-export shim + frozen prompt builder
-│   ├── balanced_v7/        Re-export shim + V7-specific hierarchy extension
-│   └── shared/             Composition contracts and sequence declaration
-├── request/                Multipart parser and params assembler
-├── runner/                 Shared Gemini execution layer
-├── schemas/                Zod input validation
-├── services/               FROZEN archived pipelines only (V1-V4.1, baseline, improved)
-├── types/                  Feature-split domain types (core, agt, catalogue)
-├── types.ts                Backward-compat re-export shim (38 importers in archived pipelines)
-└── utils/                  validation.utils.ts (remaining utility)
++-- transport/   HTTP/controller/request/schema layer
++-- pipelines/   routing, dispatcher, core composer, version handlers
++-- prompts/     prompt templates, blocks, shared prompt contracts
++-- guardrails/  AGT extraction/classification and structural guardrails
++-- models/      Gemini/provider execution clients
++-- catalog/     contractor catalogue registry + resolver
++-- shared/      shared contracts/types/validation/registries
++-- index.ts     Fastify bootstrap
 ```
 
-## 6. Validation and Governance Infrastructure
+## 5. Validation Status
+- `npm --workspace apps/vis-service run build` -> PASS
+- `npm --workspace apps/vis-service run test:contracts` -> PASS
+- `npm --workspace apps/web-sandbox run build` -> PASS
 
-### Contract tests (spawn-free)
-- Command: `npm run test:contracts` (in `apps/vis-service`)
-- Covers: routing/default mode, alias behavior, AGT classification, canonical part ordering, V7 AGT hierarchy insertion.
-- Current status: 13/13 PASS
-
-### Unit tests
-- Command: `npm test` (in `apps/vis-service`)
-- Current status: 7/7 PASS
-
-### TypeScript compilation
-- Command: `node_modules/.bin/tsc --noEmit` (in `apps/vis-service`)
-- Current status: CLEAN
-
-### Regression runner
-- Command: `python tests/regression/run_regression.py`
-- Config: `tests/regression/config.yaml`
-- Fixtures: `fixtures/` (root-level)
-- Output: `runs/` (root-level, gitignored)
-
-## 7. Deployment Topology
-
-```
-Browser -> Netlify CDN -> netlify/functions/api.mjs -> Cloud Run (Fastify) -> Gemini
-```
-
-## 8. Source-of-Truth Files
-
-| Concern | File |
-|---|---|
-| Lifecycle / governance | `docs/PLATFORM_STATUS.md` (this file) |
-| Routing and alias semantics | `apps/vis-service/src/pipelines/routing.ts` |
-| Pipeline dispatcher | `apps/vis-service/src/pipelines/dispatcher.ts` |
-| Canonical V7 orchestration | `apps/vis-service/src/pipelines/v7/index.ts` |
-| Prompt block implementations | `apps/vis-service/src/prompts/blocks/` |
-| AGT extraction | `apps/vis-service/src/agt/extract.ts` |
-| AGT classification | `apps/vis-service/src/agt/classify.ts` |
-| Contract runner | `apps/vis-service/src/contracts/runContracts.ts` |
-| Regression config | `tests/regression/config.yaml` |
-
-## 9. Drift Prevention Rules
-
-- Any lifecycle, alias, or benchmark semantic change must update this file in the same change set.
-- `docs/CURRENT_STATE.md` is a derivative summary and must reference this file.
-- Source-of-truth paths in Section 8 must be updated whenever a file moves.
+## 6. Drift Prevention
+Any lifecycle/path/semantics change must update:
+1. `docs/PLATFORM_STATUS.md` (this file)
+2. `docs/CURRENT_STATE.md`
+3. `apps/vis-service/README.md` and root `README.md` if flow or structure changes

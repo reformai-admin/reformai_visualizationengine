@@ -1,4 +1,4 @@
-import { StylePreset } from '../../types.js';
+import { StylePreset } from '../../shared/types/index.js';
 import {
     BALANCED_PHASE_1,
     BALANCED_PHASE_2_HEADER,
@@ -128,3 +128,6 @@ export const buildFurniturePrompt = (hasFurnitureImage: boolean, roomType: strin
     if (!hasFurnitureImage) return '';
     return INSTRUCTION_INTEGRATE_FURNITURE.replace(/\{\{ROOM_TYPE\}\}/g, roomType);
 };
+
+
+

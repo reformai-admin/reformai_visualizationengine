@@ -39,3 +39,6 @@ Express window styling through furniture, textiles, and decor only.
 **EXTERIOR VIEW PRESERVATION:**
 Preserve the visible exterior through all windows exactly as it appears in the input. Do not replace, beautify, landscape, blur, or restyle it.
 `;
+
+
+

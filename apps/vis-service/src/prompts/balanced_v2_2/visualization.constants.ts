@@ -515,3 +515,6 @@ Run the following checks on the intended output before generating. If a check fa
      - Has any new wall, column, partition, or architectural element been introduced?
      - If yes to any violation → remove it before generating.
 `;
+
+
+

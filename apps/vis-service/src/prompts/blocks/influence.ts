@@ -23,3 +23,6 @@ export const V5_MOODBOARD_INFLUENCE_STATEMENT =
     'visualization. The moodboard images above inform palette direction, surface texture, ' +
     'and lighting mood only — within the scope defined before those images. They do not ' +
     'override style identity, material family, or decorative density.';
+
+
+
