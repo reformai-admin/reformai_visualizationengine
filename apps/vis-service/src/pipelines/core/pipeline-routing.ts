@@ -28,6 +28,7 @@ const VALID_PIPELINE_MODES: PipelineMode[] = [
     'balanced_v5',
     'balanced_v6',
     'balanced_v7',
+    'balanced_v8',
     'improved_current',
 ];
 

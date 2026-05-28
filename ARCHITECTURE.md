@@ -1,7 +1,7 @@
 # ReformAI Visualization Engine — Architecture
 
-**Last Updated:** 2026-05-23
-**Scope:** Complete architectural history from inception through V7. Every major decision, what triggered it, what it solved, and what it deliberately did not solve.
+**Last Updated:** 2026-05-27
+**Scope:** Complete architectural history from inception through V8. Every major decision, what triggered it, what it solved, and what it deliberately did not solve.
 
 For current operational state — active paths, validation commands, deployment topology — see `docs/PLATFORM_STATUS.md`. This document is the *why*. That document is the *what*.
 
@@ -28,6 +28,7 @@ For current operational state — active paths, validation commands, deployment 
    - [V5.2.1 — The Tonal Overlay Fix](#v521--the-tonal-overlay-fix)
    - [V6.0 — Renovation Material Anchors](#v60--renovation-material-anchors)
    - [V7 — Architectural Ground Truth Pipeline](#v7--architectural-ground-truth-pipeline)
+   - [V8 — Catalogue-First Pipeline](#v8--catalogue-first-pipeline-service-provider-use-case)
 9. [What We Explicitly Chose Not to Build](#9-what-we-explicitly-chose-not-to-build)
 10. [Regression and Validation Philosophy](#10-regression-and-validation-philosophy)
 11. [Current Source Structure](#11-current-source-structure)
@@ -456,6 +457,48 @@ The calibration is deliberately biased toward medium when uncertain: it is bette
 
 ---
 
+### V8 — Catalogue-First Pipeline (Service Provider Use Case)
+
+**Mode:** `balanced_v8`
+**Template version:** `8.0.0`
+**Status:** Implemented, pending regression validation.
+
+**What triggered it:** Feedback that V7 lost the clarity of the original baseline prompt. V5 through V7 built progressively complex constraint machinery around a style-first prompt architecture — style drives the brief, and catalogue items are injected as late-stage overrides ("Tier 2B renovation anchors"). This works adequately for the general consumer redesign use case. It is the wrong architecture for the service provider catalogue use case.
+
+**The core problem with applying V7 to catalogue visualization:** When the prompt is style-first, the model reads a detailed aesthetic brief (core materials, color palette, signature elements, staging density, don't rules), then encounters renovation anchors that say "override these specific surfaces." Style pressure competes with the anchor override — the model has already formed a complete design intent, and the catalogue item is asking it to revise part of that intent. This is where "White Oak flooring" becomes "warm wood-toned flooring that harmonizes with the Japandi palette."
+
+**The V8 insight:** For the service provider use case, the catalogue items are not overrides — they are the primary brief. A contractor is not asking the model to redesign a room in a style; they are asking the model to show a client what their room looks like with specific products installed. The role is different. The mission is different. The prompt architecture should reflect that.
+
+**The architectural change:**
+
+V8 uses the same V7 machinery (AGT extraction, confidence gating, conflict clauses, constraint hierarchy, moodboard support). What changes is the prompt's role framing and the position of style within it:
+
+- **V5–V7:** "Act as an expert interior designer → apply this style → [catalogue items override specific surfaces]"
+- **V8:** "You are a professional renovation installer → these products are being installed → [style wraps around what the products don't cover]"
+
+The structural prompt is rewritten for contractor/installer framing. The style block is compressed to ambient context — a few lines scoped to unclaimed surfaces — rather than a full style brief with staging density, signature elements, and self-audit. The constraint hierarchy Tier 2B is updated from "catalogue selections override Tier 4 style transformation" to "CATALOGUE ITEMS ARE THE PRIMARY RENDER BRIEF."
+
+**What stays identical to V7:**
+- AGT extraction call and confidence gating
+- FALLBACK_AGT behavior
+- Conflict clauses block
+- Moodboard support and influence prompt logic
+- Injected item support
+- Canonical block sequence (renovation anchors still appear before style block)
+- Gemini client
+
+**What changes from V7:**
+- `BALANCED_V8_STRUCTURAL_PART` — installer brief framing, catalogue-first principle stated at the top
+- `buildV8StylePart()` — compact, two variants: with-style and no-style (clean contemporary fallback)
+- `buildConstraintHierarchyBlock()` — Tier 2B relabeled "INSTALLED CATALOGUE PRODUCTS [PRIMARY RENDER BRIEF]"
+- `buildVisualizationPrompt()` — no staging density validation, no color_palette/core_materials/signature_elements required; style is optional by name only
+
+**V8 is designed to be called with catalogue selections active.** Without catalogue items, V7 is the more appropriate pipeline — V8's structural part announces a product brief and the absence of products leaves that promise unfulfilled.
+
+**V8 acceptance target:** ≤2 hard rejections per 12-case regression; average catalogue product compliance ≥75% per category.
+
+---
+
 ## 9. What We Explicitly Chose Not to Build
 
 Every item below was evaluated, discussed, and deliberately deferred. These are not oversights.
@@ -516,7 +559,7 @@ apps/vis-service/src/
 ├── transport/          HTTP layer — controllers, multipart parsing, request assembly, schemas
 ├── pipelines/          Pipeline routing, dispatch, and per-version generation flows
 │   ├── core/           Routing logic, dispatcher, canonical composer
-│   ├── versions/       Active pipeline version handlers (balanced-v5, v6, v7)
+│   ├── versions/       Active pipeline version handlers (balanced-v5, v6, v7, v8)
 │   └── legacy-services/ Historical geminiService handlers (v1–v4.1, baseline, improved)
 ├── prompts/            Prompt block builders and version-specific templates
 │   └── blocks/         Individual block builders (structural, constraint-hierarchy, AGT, etc.)
@@ -579,7 +622,10 @@ Google Gemini API
 
 ## 13. What Is Next
 
-**V7 regression validation (immediate)**
+**V8 regression validation (immediate)**
+V8 is implemented and compiles clean. It has not yet been validated against the regression matrix. Until a regression run is executed against catalogue-active test cases and results are recorded, V8 is *implemented but unvalidated*. Acceptance target: ≤2 hard rejections per 12 cases; average catalogue product compliance ≥75% per category.
+
+**V7 regression validation**
 V7 is implemented and its contract tests pass. It has not yet been validated against the full regression matrix. Until `python tests/regression/run_regression.py` is run against the 12-case benchmark and the results are recorded, V7 is *implemented but unvalidated* per the project's mandatory regression process. The acceptance target is ≤2 hard rejections per 12 cases; average score ≥4.11.
 
 **V7.1 — Architectural relationship capture**

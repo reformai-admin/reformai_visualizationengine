@@ -15,7 +15,7 @@ export const bufferToGenerativePart = (file: MultipartFile & { buffer: Buffer })
 
 export const normalizeInjectedItems = (
     params: GenerateVisualizationParams,
-    pipelineMode: 'balanced_v5' | 'balanced_v7',
+    pipelineMode: 'balanced_v5' | 'balanced_v7' | 'balanced_v8',
 ): {
     injectedItems: InjectedItem[];
     item: InjectedItem | null;
